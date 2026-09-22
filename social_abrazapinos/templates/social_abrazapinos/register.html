@@ -1,37 +1,68 @@
 <!DOCTYPE html>
 <html lang="es">
-<!-- Plantilla de registro de nuevos usuarios. Permite crear una cuenta y acceder automáticamente a su perfil inicial. -->
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Registro</title>
     <style>
+        :root {
+            --bg: #f6f1ea;
+            --panel: #ffffff;
+            --primary: #7c4d2e;
+            --primary-dark: #5f391f;
+            --text: #2c1d12;
+            --line: #e7d9ca;
+            --error: #b42318;
+        }
+
+        body[data-theme="dark"] {
+            --bg: #171b1a;
+            --panel: #1d2423;
+            --primary: #d39b68;
+            --primary-dark: #b37a4b;
+            --text: #edf4f1;
+            --line: #2d3837;
+            --error: #f7a1a1;
+        }
+
+        * { box-sizing: border-box; }
+
         body {
             font-family: Arial, sans-serif;
-            background: #f6f1ea;
+            background: linear-gradient(180deg, var(--bg) 0%, #efe5dc 100%);
             margin: 0;
-            color: #2c1d12;
+            color: var(--text);
+            transition: background 0.2s ease, color 0.2s ease;
         }
+
+        body[data-theme="dark"] {
+            background: linear-gradient(180deg, #171b1a 0%, #1d2423 100%);
+        }
+
         .container {
             max-width: 620px;
             margin: 80px auto;
-            background: white;
+            background: var(--panel);
+            border: 1px solid var(--line);
             padding: 32px;
-            border-radius: 18px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+            border-radius: 22px;
+            box-shadow: 0 12px 30px rgba(0,0,0,0.09);
         }
-        h1 { text-align: center; }
+
+        h1 { text-align: center; color: var(--primary); }
         form { display: flex; flex-direction: column; gap: 14px; }
         label { font-weight: bold; }
         input {
             width: 100%;
             padding: 10px 12px;
-            border: 1px solid #d9c9b6;
+            border: 1px solid var(--line);
             border-radius: 10px;
             box-sizing: border-box;
+            background: transparent;
+            color: var(--text);
         }
         button {
-            background: #7c4d2e;
+            background: var(--primary);
             color: white;
             border: none;
             padding: 12px 18px;
@@ -43,12 +74,24 @@
             margin-top: 18px;
             text-align: center;
         }
-        a { color: #7c4d2e; text-decoration: none; }
-        .errorlist { color: #b00020; list-style: none; padding: 0; }
+        a { color: var(--primary); text-decoration: none; }
+        .errorlist { color: var(--error); list-style: none; padding: 0; }
+        .theme-toggle {
+            display: inline-block;
+            margin: 0 0 18px auto;
+            border: 1px solid var(--line);
+            background: transparent;
+            color: var(--text);
+            border-radius: 999px;
+            padding: 8px 14px;
+            font-weight: bold;
+            cursor: pointer;
+        }
     </style>
 </head>
-<body>
+<body data-theme="light">
     <div class="container">
+        <button class="theme-toggle" id="themeToggle" type="button">Modo oscuro</button>
         <h1>Crear cuenta</h1>
         <form method="post">
             {% csrf_token %}
@@ -77,5 +120,25 @@
             <p><a href="{% url 'social_home' %}">Volver a la social</a></p>
         </div>
     </div>
+
+    <script>
+        const body = document.body;
+        const toggle = document.getElementById('themeToggle');
+        const storedTheme = localStorage.getItem('theme');
+
+        function applyTheme(theme) {
+            const isDark = theme === 'dark';
+            body.setAttribute('data-theme', isDark ? 'dark' : 'light');
+            toggle.textContent = isDark ? 'Modo claro' : 'Modo oscuro';
+        }
+
+        applyTheme(storedTheme || 'light');
+
+        toggle.addEventListener('click', () => {
+            const nextTheme = body.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+            localStorage.setItem('theme', nextTheme);
+            applyTheme(nextTheme);
+        });
+    </script>
 </body>
 </html>

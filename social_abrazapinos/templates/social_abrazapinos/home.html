@@ -1,87 +1,211 @@
 <!DOCTYPE html>
 <html lang="es">
-<!-- Plantilla principal de la sección social de Abrazapinos. Muestra el menú, la bienvenida y las últimas publicaciones del feed. -->
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Abrazapinos Social</title>
     <style>
+        :root {
+            --bg: #edf5f0;
+            --bg-alt: #e5efe8;
+            --panel: #ffffff;
+            --panel-soft: #f5faf6;
+            --primary: #1d5b3d;
+            --primary-dark: #143d2e;
+            --secondary: #7f9a4c;
+            --text: #17362b;
+            --muted: #5d756b;
+            --line: #dfeae3;
+            --shadow: 0 12px 32px rgba(18, 49, 37, 0.08);
+        }
+
+        body[data-theme="dark"] {
+            --bg: #141d1b;
+            --bg-alt: #1d2624;
+            --panel: #1d2725;
+            --panel-soft: #1f2b2a;
+            --primary: #7cc18d;
+            --primary-dark: #5ca16d;
+            --secondary: #a7c96d;
+            --text: #edf6f0;
+            --muted: #bfd0ca;
+            --line: #2d3837;
+            --shadow: 0 12px 32px rgba(0,0,0,0.35);
+        }
+
+        * { box-sizing: border-box; }
+
         body {
             font-family: Arial, sans-serif;
             margin: 0;
-            background: #f3f7f2;
-            color: #1d2b1f;
+            color: var(--text);
+            background: linear-gradient(180deg, var(--bg) 0%, var(--bg-alt) 100%);
+            transition: background 0.2s ease, color 0.2s ease;
         }
-        .container {
-            max-width: 1100px;
-            margin: 0 auto;
-            padding: 30px 20px;
-        }
+
         .topbar {
-            background: #204b3a;
+            background: linear-gradient(135deg, var(--primary-dark), var(--primary));
             color: white;
-            padding: 16px 0;
+            box-shadow: 0 4px 18px rgba(18, 49, 37, 0.12);
         }
+
         .nav {
+            max-width: 1180px;
+            margin: 0 auto;
+            padding: 18px 20px;
             display: flex;
             justify-content: space-between;
             align-items: center;
             gap: 16px;
-            max-width: 1100px;
-            margin: 0 auto;
-            padding: 0 20px;
+            flex-wrap: wrap;
         }
+
+        .brand {
+            font-size: 1.4rem;
+            font-weight: bold;
+        }
+
+        .nav-links {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 14px;
+            flex-wrap: wrap;
+        }
+
         .nav a {
             color: white;
             text-decoration: none;
-            margin-left: 16px;
-            font-weight: bold;
+            font-weight: 600;
         }
-        h1, h2 { margin-top: 0; }
-        .hero {
-            background: linear-gradient(135deg, #1a5b3d, #34a853);
+
+        .nav .welcome {
+            color: rgba(255,255,255,0.9);
+            font-weight: 600;
+        }
+
+        .theme-toggle {
+            background: rgba(255,255,255,0.12);
+            border: 1px solid rgba(255,255,255,0.28);
             color: white;
-            padding: 50px 24px;
-            border-radius: 20px;
-            margin: 30px 0;
+            border-radius: 999px;
+            padding: 8px 14px;
+            font-weight: bold;
+            cursor: pointer;
         }
+
+        .container {
+            max-width: 1180px;
+            margin: 0 auto;
+            padding: 36px 20px 60px;
+        }
+
+        .hero {
+            background: linear-gradient(135deg, #1a5c3d, #4ca061);
+            border-radius: 24px;
+            color: white;
+            padding: 42px 30px;
+            box-shadow: var(--shadow);
+            margin-bottom: 34px;
+        }
+
+        .hero h1 {
+            margin: 0 0 12px;
+            font-size: clamp(2rem, 3vw, 3rem);
+        }
+
+        .hero p {
+            margin: 0 0 24px;
+            font-size: 1.06rem;
+            max-width: 650px;
+        }
+
+        .actions {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .actions a {
+            display: inline-block;
+            text-decoration: none;
+            background: rgba(255,255,255,0.12);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.22);
+            padding: 12px 18px;
+            border-radius: 12px;
+            font-weight: bold;
+            transition: transform 0.2s ease;
+        }
+
+        .actions a:hover {
+            transform: translateY(-1px);
+        }
+
+        .section-title {
+            margin: 0 0 18px;
+            font-size: 2rem;
+        }
+
         .cards {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
             gap: 22px;
-            margin-top: 30px;
         }
+
         .card {
-            background: white;
-            border-radius: 16px;
-            padding: 20px;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: 20px;
+            padding: 22px 20px;
+            box-shadow: var(--shadow);
         }
+
         .badge {
             display: inline-block;
-            font-size: 12px;
-            background: #dff4e5;
-            color: #256e3b;
-            padding: 6px 10px;
+            background: #def4df;
+            color: #246d3f;
+            padding: 7px 12px;
             border-radius: 999px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .card h3 {
+            margin: 0 0 10px;
+            font-size: 1.4rem;
+        }
+
+        .meta {
+            color: var(--muted);
+            font-size: 0.85rem;
             margin-bottom: 12px;
+        }
+
+        .author-link {
+            color: var(--primary);
+            text-decoration: none;
             font-weight: bold;
         }
-        .meta {
-            color: #5c6d60;
-            font-size: 13px;
+
+        .card p {
+            margin: 0;
+            line-height: 1.6;
+            color: var(--text);
         }
     </style>
 </head>
-<body>
+<body data-theme="light">
     <header class="topbar">
         <div class="nav">
-            <strong>Abrazapinos</strong>
-            <div>
+            <div class="brand">Abrazapinos</div>
+            <div class="nav-links">
                 <a href="/social/">Social</a>
                 <a href="/shop/">Compraventa</a>
+                <button class="theme-toggle" id="themeToggle" type="button">Modo oscuro</button>
                 {% if user.is_authenticated %}
-                    <span>Hola, {{ user.username }}</span>
+                    <span class="welcome">Hola, {{ user.username }}</span>
                     <a href="{% url 'profile' %}">Mi perfil</a>
                     <a href="{% url 'logout' %}">Cerrar sesión</a>
                 {% else %}
@@ -95,18 +219,31 @@
     <main class="container">
         <section class="hero">
             <h1>Bienvenido a la parte social</h1>
-            <p>Comparte noticias, historias y momentos con la comunidad de Abrazapinos.</p>
-            <a href="/shop/" style="display:inline-block; background:white; color:#204b3a; padding:12px 18px; border-radius:10px; text-decoration:none; font-weight:bold;">Ir a la tienda</a>
+            <p>Comparte historias, rutas, momentos y novedades con la comunidad de Abrazapinos.</p>
+            {% if user.is_authenticated %}
+                <div class="actions">
+                    <a href="{% url 'create_post' %}">Crear publicación</a>
+                    <a href="/shop/">Ir a la tienda</a>
+                </div>
+            {% else %}
+                <div class="actions">
+                    <a href="{% url 'login' %}">Iniciar sesión</a>
+                    <a href="/shop/">Ir a la tienda</a>
+                </div>
+            {% endif %}
         </section>
 
         <section>
-            <h2>Últimas publicaciones</h2>
+            <h2 class="section-title">Últimas publicaciones</h2>
             <div class="cards">
                 {% for post in posts %}
                     <article class="card">
-                        <span class="badge">Publicación</span>
+                        <span class="badge">{{ post.get_visibility_display }}</span>
                         <h3>{{ post.title }}</h3>
-                        <p class="meta">{{ post.created_at|date:"d/m/Y H:i" }}</p>
+                        <p class="meta">
+                            <a class="author-link" href="{% url 'user_profile' post.author.username %}">{{ post.author.username }}</a>
+                            · {{ post.created_at|date:"d/m/Y H:i" }}
+                        </p>
                         <p>{{ post.content }}</p>
                     </article>
                 {% empty %}
@@ -118,5 +255,25 @@
             </div>
         </section>
     </main>
+
+    <script>
+        const body = document.body;
+        const toggle = document.getElementById('themeToggle');
+        const storedTheme = localStorage.getItem('theme');
+
+        function applyTheme(theme) {
+            const isDark = theme === 'dark';
+            body.setAttribute('data-theme', isDark ? 'dark' : 'light');
+            toggle.textContent = isDark ? 'Modo claro' : 'Modo oscuro';
+        }
+
+        applyTheme(storedTheme || 'light');
+
+        toggle.addEventListener('click', () => {
+            const nextTheme = body.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+            localStorage.setItem('theme', nextTheme);
+            applyTheme(nextTheme);
+        });
+    </script>
 </body>
 </html>

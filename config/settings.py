@@ -26,8 +26,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'social_abrazapinos.apps.SocialAbrazapinosConfig',
-    'shop_abrazapinos.apps.ShopAbrazapinosConfig',
+    'social_abrazapinos',
+    'shop_abrazapinos',
 ]
 
 MIDDLEWARE = [

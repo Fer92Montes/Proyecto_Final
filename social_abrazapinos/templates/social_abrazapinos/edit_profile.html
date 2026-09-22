@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editar perfil</title>
+    <style>
+        :root {
+            --bg: #edf6f0;
+            --bg-alt: #e5efe9;
+            --panel: #ffffff;
+            --panel-soft: #f4faf6;
+            --primary: #224f3c;
+            --primary-alt: #2c6a4e;
+            --text: #18372d;
+            --muted: #61756d;
+            --line: #dfeae3;
+            --error: #b42318;
+            --shadow: 0 14px 32px rgba(17, 45, 37, 0.08);
+        }
+
+        body[data-theme="dark"] {
+            --bg: #151d1b;
+            --bg-alt: #1c2624;
+            --panel: #1d2725;
+            --panel-soft: #1f2b2a;
+            --primary: #7cc18d;
+            --primary-alt: #9ad7a5;
+            --text: #edf6f0;
+            --muted: #bfd0ca;
+            --line: #2d3837;
+            --error: #f7a1a1;
+            --shadow: 0 14px 32px rgba(0,0,0,0.3);
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: linear-gradient(180deg, var(--bg) 0%, var(--bg-alt) 100%);
+            color: var(--text);
+            transition: background 0.2s ease, color 0.2s ease;
+        }
+
+        .container {
+            max-width: 920px;
+            margin: 52px auto;
+            background: var(--panel);
+            border-radius: 22px;
+            padding: 34px 28px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--line);
+        }
+
+        h1, h2 {
+            margin-top: 0;
+            color: var(--primary);
+        }
+
+        form {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 18px;
+        }
+
+        .full { grid-column: 1 / -1; }
+
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: var(--text);
+        }
+
+        input, textarea, select {
+            width: 100%;
+            padding: 11px 12px;
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            background: transparent;
+            color: var(--text);
+            box-sizing: border-box;
+            font-size: 1rem;
+        }
+
+        textarea {
+            min-height: 120px;
+        }
+
+        .actions {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            margin-top: 8px;
+            flex-wrap: wrap;
+        }
+
+        button,
+        .theme-toggle {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 18px;
+            border-radius: 12px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        a {
+            color: var(--primary-alt);
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .errorlist {
+            list-style: none;
+            padding: 0;
+            margin: 8px 0 0;
+            color: var(--error);
+        }
+
+        hr {
+            border: none;
+            border-top: 1px solid var(--line);
+            margin: 28px 0;
+        }
+    </style>
+</head>
+<body data-theme="light">
+    <div class="container">
+        <button class="theme-toggle" id="themeToggle" type="button" style="margin-bottom: 18px;">Modo oscuro</button>
+        <h1>Editar perfil</h1>
+
+        <form method="post">
+            {% csrf_token %}
+
+            <div class="full">
+                <h2>Datos personales</h2>
+            </div>
+
+            {% for field in profile_form %}
+                <div class="{% if field.name == 'bio' %}full{% endif %}">
+                    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    {{ field }}
+                    {% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}
+                    {% if field.errors %}
+                        <ul class="errorlist">
+                            {% for error in field.errors %}<li>{{ error }}</li>{% endfor %}
+                        </ul>
+                    {% endif %}
+                </div>
+            {% endfor %}
+
+            <div class="full actions">
+                <button type="submit" name="profile_submit">Guardar perfil</button>
+                <a href="{% url 'profile' %}">Cancelar</a>
+            </div>
+        </form>
+
+        <hr>
+
+        <h2>Cambiar contraseña</h2>
+        <form method="post">
+            {% csrf_token %}
+            {% for field in password_form %}
+                <div class="full">
+                    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    {{ field }}
+                    {% if field.errors %}
+                        <ul class="errorlist">
+                            {% for error in field.errors %}<li>{{ error }}</li>{% endfor %}
+                        </ul>
+                    {% endif %}
+                </div>
+            {% endfor %}
+            <div class="full actions">
+                <button type="submit" name="password_submit">Cambiar contraseña</button>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        const body = document.body;
+        const toggle = document.getElementById('themeToggle');
+        const storedTheme = localStorage.getItem('theme');
+
+        function applyTheme(theme) {
+            const isDark = theme === 'dark';
+            body.setAttribute('data-theme', isDark ? 'dark' : 'light');
+            toggle.textContent = isDark ? 'Modo claro' : 'Modo oscuro';
+        }
+
+        applyTheme(storedTheme || 'light');
+
+        toggle.addEventListener('click', () => {
+            const nextTheme = body.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+            localStorage.setItem('theme', nextTheme);
+            applyTheme(nextTheme);
+        });
+    </script>
+</body>
+</html>

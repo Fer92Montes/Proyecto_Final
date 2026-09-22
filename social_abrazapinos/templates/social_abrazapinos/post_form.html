@@ -3,132 +3,136 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Iniciar sesión</title>
+    <title>Crear publicación</title>
     <style>
         :root {
-            --bg: #edf5f0;
+            --bg: #eef6f1;
+            --bg-alt: #e5efe9;
             --panel: #ffffff;
-            --primary: #1f5d3e;
-            --primary-dark: #163f2f;
-            --text: #17362b;
-            --muted: #5c7369;
+            --primary: #1f4f3c;
+            --primary-alt: #2c6a4e;
+            --text: #18372d;
             --line: #dfeae3;
             --error: #b42318;
+            --shadow: 0 14px 32px rgba(17, 45, 37, 0.08);
         }
 
         body[data-theme="dark"] {
-            --bg: #141d1b;
+            --bg: #151d1b;
+            --bg-alt: #1c2624;
             --panel: #1d2725;
             --primary: #7cc18d;
-            --primary-dark: #5ca16d;
+            --primary-alt: #9ad7a5;
             --text: #edf6f0;
-            --muted: #bfd0ca;
             --line: #2d3837;
             --error: #f7a1a1;
+            --shadow: 0 14px 32px rgba(0,0,0,0.3);
         }
 
         * { box-sizing: border-box; }
 
         body {
-            font-family: Arial, sans-serif;
-            background: linear-gradient(180deg, var(--bg) 0%, #e7efe9 100%);
             margin: 0;
+            font-family: Arial, sans-serif;
+            background: linear-gradient(180deg, var(--bg) 0%, var(--bg-alt) 100%);
             color: var(--text);
             transition: background 0.2s ease, color 0.2s ease;
         }
 
-        body[data-theme="dark"] {
-            background: linear-gradient(180deg, #141d1b 0%, #1b2624 100%);
-        }
-
         .container {
-            max-width: 560px;
-            margin: 80px auto;
+            max-width: 740px;
+            margin: 52px auto;
             background: var(--panel);
             border: 1px solid var(--line);
-            padding: 32px;
             border-radius: 22px;
-            box-shadow: 0 12px 30px rgba(0,0,0,0.09);
+            padding: 30px 28px;
+            box-shadow: var(--shadow);
         }
 
-        h1 { text-align: center; color: var(--primary); }
-        form { display: flex; flex-direction: column; gap: 14px; }
-        label { font-weight: bold; }
-        input {
+        h1 {
+            margin-top: 0;
+            color: var(--primary);
+            font-size: 2.2rem;
+        }
+
+        form {
+            display: grid;
+            gap: 18px;
+        }
+
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+        input, textarea, select {
             width: 100%;
-            padding: 10px 12px;
+            padding: 11px 12px;
             border: 1px solid var(--line);
-            border-radius: 10px;
-            box-sizing: border-box;
+            border-radius: 12px;
             background: transparent;
             color: var(--text);
+            box-sizing: border-box;
+            font-size: 1rem;
         }
 
-        button {
+        textarea { min-height: 160px; }
+
+        .actions {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            flex-wrap: wrap;
+        }
+
+        button,
+        .theme-toggle {
             background: var(--primary);
             color: white;
             border: none;
             padding: 12px 18px;
-            border-radius: 10px;
+            border-radius: 12px;
             font-weight: bold;
             cursor: pointer;
         }
 
-        .links {
-            margin-top: 18px;
-            text-align: center;
+        a {
+            color: var(--primary-alt);
+            text-decoration: none;
+            font-weight: bold;
         }
 
-        a { color: var(--primary); text-decoration: none; }
-        .errorlist { color: var(--error); list-style: none; padding: 0; }
-        .theme-toggle {
-            display: inline-block;
-            margin: 0 0 18px auto;
-            border: 1px solid var(--line);
-            background: transparent;
-            color: var(--text);
-            border-radius: 999px;
-            padding: 8px 14px;
-            font-weight: bold;
-            cursor: pointer;
+        .errorlist {
+            color: var(--error);
+            list-style: none;
+            padding: 0;
+            margin: 8px 0 0;
         }
     </style>
 </head>
 <body data-theme="light">
     <div class="container">
-        <button class="theme-toggle" id="themeToggle" type="button">Modo oscuro</button>
-        <h1>Iniciar sesión</h1>
+        <button class="theme-toggle" id="themeToggle" type="button" style="margin-bottom: 18px;">Modo oscuro</button>
+        <h1>Crear publicación</h1>
         <form method="post">
             {% csrf_token %}
-            {% if form.non_field_errors %}
-                <ul class="errorlist">
-                    {% for error in form.non_field_errors %}
-                        <li>{{ error }}</li>
-                    {% endfor %}
-                </ul>
-            {% endif %}
-
             {% for field in form %}
                 <div>
                     <label for="{{ field.id_for_label }}">{{ field.label }}</label>
                     {{ field }}
                     {% if field.errors %}
                         <ul class="errorlist">
-                            {% for error in field.errors %}
-                                <li>{{ error }}</li>
-                            {% endfor %}
+                            {% for error in field.errors %}<li>{{ error }}</li>{% endfor %}
                         </ul>
                     {% endif %}
                 </div>
             {% endfor %}
-
-            <button type="submit">Entrar</button>
+            <div class="actions">
+                <button type="submit">Publicar</button>
+                <a href="{% url 'social_home' %}">Cancelar</a>
+            </div>
         </form>
-
-        <div class="links">
-            <p>¿No tienes cuenta? <a href="{% url 'register' %}">Regístrate aquí</a></p>
-            <p><a href="{% url 'social_home' %}">Volver a la social</a></p>
-        </div>
     </div>
 
     <script>
