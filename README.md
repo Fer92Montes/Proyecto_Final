@@ -24,3 +24,7 @@ Construir una aplicación web para un club de mtt
 
 ## Fecha de creación
 2026
+
+Credenciales del superusuario
+Usuario: admin
+Contraseña: admin123

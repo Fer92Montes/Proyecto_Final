@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mi perfil</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #eef5ee;
+            margin: 0;
+            color: #1d2b1f;
+        }
+        .container {
+            max-width: 900px;
+            margin: 60px auto;
+            background: white;
+            padding: 32px;
+            border-radius: 18px;
+            box-shadow: 0 12px 28px rgba(0,0,0,0.08);
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 20px;
+            border-bottom: 1px solid #dfe8e1;
+            padding-bottom: 20px;
+            margin-bottom: 20px;
+        }
+        .badge {
+            display: inline-block;
+            background: #dff4e5;
+            color: #256e3b;
+            padding: 8px 12px;
+            border-radius: 999px;
+            font-weight: bold;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 18px;
+        }
+        .card {
+            background: #f6f9f7;
+            border-radius: 12px;
+            padding: 18px;
+        }
+        a {
+            color: #1f6a45;
+            text-decoration: none;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <span class="badge">Perfil privado</span>
+                <h1>{{ user.username }}</h1>
+            </div>
+            <div>
+                <a href="{% url 'social_home' %}">Volver a la social</a>
+            </div>
+        </div>
+
+        <div class="grid">
+            <div class="card">
+                <h3>Nombre de usuario</h3>
+                <p>{{ user.username }}</p>
+            </div>
+            <div class="card">
+                <h3>Email</h3>
+                <p>{{ user.email|default:"No indicado" }}</p>
+            </div>
+            <div class="card">
+                <h3>Ciudad</h3>
+                <p>{{ profile.city|default:"No especificada" }}</p>
+            </div>
+        </div>
+
+        <div class="card" style="margin-top: 20px;">
+            <h3>Biografía</h3>
+            <p>{{ profile.bio|default:"Todavía no has escrito tu biografía." }}</p>
+        </div>
+
+        <p style="margin-top: 20px;"><a href="{% url 'logout' %}">Cerrar sesión</a></p>
+    </div>
+</body>
+</html>

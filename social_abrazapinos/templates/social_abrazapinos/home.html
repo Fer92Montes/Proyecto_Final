@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Abrazapinos Social</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            background: #f3f7f2;
+            color: #1d2b1f;
+        }
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 30px 20px;
+        }
+        .topbar {
+            background: #204b3a;
+            color: white;
+            padding: 16px 0;
+        }
+        .nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        .nav a {
+            color: white;
+            text-decoration: none;
+            margin-left: 16px;
+            font-weight: bold;
+        }
+        h1, h2 { margin-top: 0; }
+        .hero {
+            background: linear-gradient(135deg, #1a5b3d, #34a853);
+            color: white;
+            padding: 50px 24px;
+            border-radius: 20px;
+            margin: 30px 0;
+        }
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 22px;
+            margin-top: 30px;
+        }
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+        }
+        .badge {
+            display: inline-block;
+            font-size: 12px;
+            background: #dff4e5;
+            color: #256e3b;
+            padding: 6px 10px;
+            border-radius: 999px;
+            margin-bottom: 12px;
+            font-weight: bold;
+        }
+        .meta {
+            color: #5c6d60;
+            font-size: 13px;
+        }
+    </style>
+</head>
+<body>
+    <header class="topbar">
+        <div class="nav">
+            <strong>Abrazapinos</strong>
+            <div>
+                <a href="/social/">Social</a>
+                <a href="/shop/">Compraventa</a>
+                {% if user.is_authenticated %}
+                    <span>Hola, {{ user.username }}</span>
+                    <a href="{% url 'profile' %}">Mi perfil</a>
+                    <a href="{% url 'logout' %}">Cerrar sesión</a>
+                {% else %}
+                    <a href="{% url 'login' %}">Login</a>
+                    <a href="{% url 'register' %}">Registro</a>
+                {% endif %}
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <section class="hero">
+            <h1>Bienvenido a la parte social</h1>
+            <p>Comparte noticias, historias y momentos con la comunidad de Abrazapinos.</p>
+            <a href="/shop/" style="display:inline-block; background:white; color:#204b3a; padding:12px 18px; border-radius:10px; text-decoration:none; font-weight:bold;">Ir a la tienda</a>
+        </section>
+
+        <section>
+            <h2>Últimas publicaciones</h2>
+            <div class="cards">
+                {% for post in posts %}
+                    <article class="card">
+                        <span class="badge">Publicación</span>
+                        <h3>{{ post.title }}</h3>
+                        <p class="meta">{{ post.created_at|date:"d/m/Y H:i" }}</p>
+                        <p>{{ post.content }}</p>
+                    </article>
+                {% empty %}
+                    <div class="card">
+                        <h3>No hay publicaciones todavía</h3>
+                        <p>Añade la primera historia para activar la comunidad.</p>
+                    </div>
+                {% endfor %}
+            </div>
+        </section>
+    </main>
+</body>
+</html>

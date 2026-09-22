@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f6f1ea;
+            margin: 0;
+            color: #2c1d12;
+        }
+        .container {
+            max-width: 620px;
+            margin: 80px auto;
+            background: white;
+            padding: 32px;
+            border-radius: 18px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+        }
+        h1 { text-align: center; }
+        form { display: flex; flex-direction: column; gap: 14px; }
+        label { font-weight: bold; }
+        input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #d9c9b6;
+            border-radius: 10px;
+            box-sizing: border-box;
+        }
+        button {
+            background: #7c4d2e;
+            color: white;
+            border: none;
+            padding: 12px 18px;
+            border-radius: 10px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .links {
+            margin-top: 18px;
+            text-align: center;
+        }
+        a { color: #7c4d2e; text-decoration: none; }
+        .errorlist { color: #b00020; list-style: none; padding: 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Crear cuenta</h1>
+        <form method="post">
+            {% csrf_token %}
+            {% for field in form %}
+                <div>
+                    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    {{ field }}
+                    {% if field.help_text %}
+                        <small>{{ field.help_text }}</small>
+                    {% endif %}
+                    {% if field.errors %}
+                        <ul class="errorlist">
+                            {% for error in field.errors %}
+                                <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                </div>
+            {% endfor %}
+
+            <button type="submit">Registrarse</button>
+        </form>
+
+        <div class="links">
+            <p>¿Ya tienes cuenta? <a href="{% url 'login' %}">Inicia sesión</a></p>
+            <p><a href="{% url 'social_home' %}">Volver a la social</a></p>
+        </div>
+    </div>
+</body>
+</html>
