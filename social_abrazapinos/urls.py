@@ -1,3 +1,5 @@
+"""Rutas de la aplicación social."""
+
 from django.urls import path
 
 from . import views
