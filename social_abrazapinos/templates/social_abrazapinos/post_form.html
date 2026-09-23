@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Crear publicación</title>
     <style>
+        /* --- Variables del tema para la creación de publicaciones --- */
         :root {
             --bg: #eef6f1;
             --bg-alt: #e5efe9;
@@ -29,6 +30,7 @@
             --shadow: 0 14px 32px rgba(0,0,0,0.3);
         }
 
+        /* --- Base visual --- */
         * { box-sizing: border-box; }
 
         body {
@@ -39,6 +41,7 @@
             transition: background 0.2s ease, color 0.2s ease;
         }
 
+        /* --- Contenedor del formulario --- */
         .container {
             max-width: 740px;
             margin: 52px auto;
@@ -112,6 +115,10 @@
             box-shadow: 0 8px 20px rgba(0,0,0,0.14);
         }
 
+        .theme-toggle--offset {
+            margin-bottom: 18px;
+        }
+
         a {
             color: var(--primary-alt);
             text-decoration: none;
@@ -129,7 +136,7 @@
 <body data-theme="light">
     <!-- Formulario para crear una publicación con visibilidad configurable. -->
     <div class="container">
-        <button class="theme-toggle" id="themeToggle" type="button" style="margin-bottom: 18px;" aria-label="Cambiar a modo oscuro">🌙</button>
+        <button class="theme-toggle theme-toggle--offset" id="themeToggle" type="button" aria-label="Cambiar a modo oscuro">🌙</button>
         <h1>Crear publicación</h1>
         <form method="post">
             {% csrf_token %}

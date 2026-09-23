@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mi perfil</title>
     <style>
+        /* --- Variables del tema para el perfil privado --- */
         :root {
             --bg: #edf5f0;
             --bg-alt: #e5efe9;
@@ -31,6 +32,7 @@
             --shadow: 0 14px 32px rgba(0,0,0,0.3);
         }
 
+        /* --- Base del documento --- */
         * { box-sizing: border-box; }
 
         body {
@@ -41,6 +43,7 @@
             transition: background 0.2s ease, color 0.2s ease;
         }
 
+        /* --- Contenedor principal del perfil --- */
         .container {
             max-width: 1100px;
             margin: 50px auto;
@@ -83,6 +86,7 @@
             font-size: clamp(2.1rem, 3vw, 2.8rem);
         }
 
+        /* --- Tarjetas de información --- */
         .grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -108,6 +112,7 @@
             color: var(--text);
         }
 
+        /* --- Acciones y enlaces rápidos --- */
         .actions {
             display: flex;
             gap: 8px;

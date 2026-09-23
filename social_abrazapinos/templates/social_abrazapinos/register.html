@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Registro</title>
     <style>
+        /* --- Variables del tema para el registro --- */
         :root {
             --bg: #f6f1ea;
             --panel: #ffffff;
@@ -25,6 +26,7 @@
             --error: #f7a1a1;
         }
 
+        /* --- Base general --- */
         * { box-sizing: border-box; }
 
         body {
@@ -39,6 +41,7 @@
             background: linear-gradient(180deg, #171b1a 0%, #1d2423 100%);
         }
 
+        /* --- Formulario de registro --- */
         .container {
             max-width: 620px;
             margin: 80px auto;
@@ -76,6 +79,8 @@
         }
         a { color: var(--primary); text-decoration: none; }
         .errorlist { color: var(--error); list-style: none; padding: 0; }
+
+        /* --- Botón fijo para cambiar tema --- */
         .theme-toggle {
             position: fixed;
             top: 18px;

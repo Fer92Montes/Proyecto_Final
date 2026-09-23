@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Abrazapinos Shop</title>
     <style>
+        /* --- Variables globales del tema de la tienda --- */
         :root {
             --bg: #f4efe9;
             --bg-alt: #ece3d8;
@@ -33,6 +34,7 @@
             --shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
         }
 
+        /* --- Base y cuerpo de la página --- */
         * { box-sizing: border-box; }
 
         body {
@@ -49,6 +51,7 @@
             padding: 30px 20px 60px;
         }
 
+        /* --- Cabecera y navegación --- */
         .topbar {
             background: linear-gradient(135deg, var(--primary-dark), var(--primary));
             color: white;
@@ -99,6 +102,7 @@
             transform: translateY(-1px);
         }
 
+        /* --- Tema oscuro y botón fijo en la esquina --- */
         .theme-toggle {
             position: fixed;
             top: 18px;
@@ -118,6 +122,7 @@
             box-shadow: 0 8px 20px rgba(0,0,0,0.18);
         }
 
+        /* --- Hero y productos --- */
         .hero {
             background: linear-gradient(135deg, #7d4b2d, #d9903d);
             color: white;
@@ -191,7 +196,7 @@
     <!-- Cabecera de la tienda con navegación entre social y compraventa. -->
     <header class="topbar">
         <div class="nav">
-            <div class="brand">Abrazapinos Shop</div>
+            <div class="brand">Abrazapinos Tienda</div>
             <div class="nav-links">
                 <a href="/social/">Social</a>
                 <a href="/shop/">Compraventa</a>
@@ -201,7 +206,7 @@
                     <a href="{% url 'profile' %}">Mi perfil</a>
                     <a href="{% url 'logout' %}">Cerrar sesión</a>
                 {% else %}
-                    <a href="{% url 'login' %}">Login</a>
+                    <a href="{% url 'login' %}">Iniciar sesión</a>
                     <a href="{% url 'register' %}">Registro</a>
                 {% endif %}
             </div>

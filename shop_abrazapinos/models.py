@@ -3,7 +3,7 @@
 from django.db import models
 
 
-class Product(models.Model):
+class Producto(models.Model):
     """Representa un producto disponible en la sección de compraventa."""
 
     name = models.CharField(max_length=200)
@@ -20,3 +20,6 @@ class Product(models.Model):
     def __str__(self):
         """Devuelve el nombre del producto como representación textual."""
         return self.name
+
+
+Product = Producto

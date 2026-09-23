@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Perfil de {{ profile_user.username }}</title>
     <style>
+        /* --- Variables de tema para perfiles públicos --- */
         :root {
             --bg: #f7f3ef;
             --bg-alt: #f0e8e2;
@@ -33,6 +34,7 @@
             --shadow: 0 14px 32px rgba(0,0,0,0.3);
         }
 
+        /* --- Base general --- */
         * { box-sizing: border-box; }
 
         body {
@@ -43,6 +45,7 @@
             transition: background 0.2s ease, color 0.2s ease;
         }
 
+        /* --- Perfil y columnas de datos --- */
         .container {
             max-width: 1080px;
             margin: 52px auto;
@@ -72,6 +75,13 @@
         .username {
             margin: 6px 0 0;
             color: var(--muted);
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
         }
 
         .btn {
@@ -126,6 +136,7 @@
             padding-left: 18px;
         }
 
+        /* --- Botón del modo claro/oscuro --- */
         .theme-toggle {
             position: fixed;
             top: 18px;
@@ -154,7 +165,7 @@
                 <h1>{{ profile.display_name|default:profile_user.username }}</h1>
                 <p class="username">@{{ profile_user.username }}</p>
             </div>
-            <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+            <div class="header-actions">
                 <button class="theme-toggle" id="themeToggle" type="button" aria-label="Cambiar a modo oscuro">🌙</button>
                 {% if user.is_authenticated and user != profile_user %}
                     {% if is_friend %}

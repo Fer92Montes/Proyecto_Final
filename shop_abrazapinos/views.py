@@ -1,11 +1,27 @@
 """Vistas de la aplicación de tienda."""
 
-from django.shortcuts import render
+from django.views.generic import TemplateView
 
-from .models import Product
+from .models import Producto
 
 
-def home(request):
+class VistaTienda(TemplateView):
     """Muestra los productos más recientes en la página inicial de la tienda."""
-    products = Product.objects.order_by('-created_at')[:6]
-    return render(request, 'shop_abrazapinos/home.html', {'products': products})
+
+    template_name = 'shop_abrazapinos/home.html'
+
+    def get_context_data(self, **kwargs):
+        """Añade los productos destacados a la vista."""
+        contexto = super().get_context_data(**kwargs)
+        contexto['products'] = Producto.objects.order_by('-created_at')[:6]
+        return contexto
+
+
+def inicio(request):
+    """Mantiene una vista funcional con el nombre más claro del proyecto."""
+    return VistaTienda.as_view()(request)
+
+
+home = inicio
+
+__all__ = ['VistaTienda', 'inicio', 'home']

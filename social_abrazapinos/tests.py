@@ -7,7 +7,7 @@ from django.urls import reverse
 from .models import Friendship, Post, Profile
 
 
-class SocialAppTests(TestCase):
+class PruebasAppSocial(TestCase):
     """Comprueba la seguridad del perfil y la visibilidad de contenido entre usuarios."""
 
     def setUp(self):

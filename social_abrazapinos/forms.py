@@ -1,10 +1,12 @@
+"""Formularios de la aplicación social."""
+
 from django import forms
 from django.contrib.auth.forms import PasswordChangeForm
 
 from .models import Post, Profile
 
 
-class ProfileForm(forms.ModelForm):
+class FormularioPerfil(forms.ModelForm):
     """Formulario para editar los datos personales y sociales del usuario."""
 
     first_name = forms.CharField(max_length=30, required=False, label='Nombre')
@@ -22,27 +24,27 @@ class ProfileForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         """Carga los valores actuales del usuario en el formulario."""
-        user = kwargs.get('instance') and kwargs['instance'].user
+        usuario = kwargs.get('instance') and kwargs['instance'].user
         super().__init__(*args, **kwargs)
-        if user is not None:
-            self.fields['first_name'].initial = user.first_name
-            self.fields['last_name'].initial = user.last_name
-            self.fields['email'].initial = user.email
+        if usuario is not None:
+            self.fields['first_name'].initial = usuario.first_name
+            self.fields['last_name'].initial = usuario.last_name
+            self.fields['email'].initial = usuario.email
 
     def save(self, commit=True):
         """Guarda también los datos básicos del usuario junto con el perfil."""
-        profile = super().save(commit=False)
-        user = profile.user
-        user.first_name = self.cleaned_data['first_name']
-        user.last_name = self.cleaned_data['last_name']
-        user.email = self.cleaned_data['email']
-        user.save()
+        perfil = super().save(commit=False)
+        usuario = perfil.user
+        usuario.first_name = self.cleaned_data['first_name']
+        usuario.last_name = self.cleaned_data['last_name']
+        usuario.email = self.cleaned_data['email']
+        usuario.save()
         if commit:
-            profile.save()
-        return profile
+            perfil.save()
+        return perfil
 
 
-class PostForm(forms.ModelForm):
+class FormularioPublicacion(forms.ModelForm):
     """Formulario para crear publicaciones con control de visibilidad."""
 
     class Meta:
@@ -54,7 +56,21 @@ class PostForm(forms.ModelForm):
         }
 
 
-class CustomPasswordChangeForm(PasswordChangeForm):
+class FormularioCambioContrasena(PasswordChangeForm):
     """Formulario personalizado para cambiar la contraseña del usuario."""
 
     pass
+
+
+ProfileForm = FormularioPerfil
+PostForm = FormularioPublicacion
+CustomPasswordChangeForm = FormularioCambioContrasena
+
+__all__ = [
+    'FormularioPerfil',
+    'FormularioPublicacion',
+    'FormularioCambioContrasena',
+    'ProfileForm',
+    'PostForm',
+    'CustomPasswordChangeForm',
+]

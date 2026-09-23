@@ -5,13 +5,13 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
-    path('', views.home, name='social_home'),
-    path('profile/', views.profile_view, name='profile'),
-    path('profile/edit/', views.edit_profile_view, name='edit_profile'),
-    path('profile/<str:username>/add_friend/', views.add_friend_view, name='add_friend'),
-    path('profile/<str:username>/', views.user_profile_view, name='user_profile'),
-    path('posts/new/', views.create_post_view, name='create_post'),
-    path('login/', views.login_view, name='login'),
-    path('logout/', views.logout_view, name='logout'),
-    path('register/', views.register_view, name='register'),
+    path('', views.VistaInicioSocial.as_view(), name='social_home'),
+    path('profile/', views.VistaPerfilUsuario.as_view(), name='profile'),
+    path('profile/edit/', views.VistaEditarPerfil.as_view(), name='edit_profile'),
+    path('profile/<str:username>/add_friend/', views.VistaAgregarAmigo.as_view(), name='add_friend'),
+    path('profile/<str:username>/', views.VistaPerfilAjeno.as_view(), name='user_profile'),
+    path('posts/new/', views.VistaCrearPublicacion.as_view(), name='create_post'),
+    path('login/', views.VistaIniciarSesion.as_view(), name='login'),
+    path('logout/', views.VistaCerrarSesion.as_view(), name='logout'),
+    path('register/', views.VistaRegistro.as_view(), name='register'),
 ]
