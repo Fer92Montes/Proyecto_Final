@@ -82,21 +82,29 @@
         a { color: var(--primary); text-decoration: none; }
         .errorlist { color: var(--error); list-style: none; padding: 0; }
         .theme-toggle {
-            display: inline-block;
-            margin: 0 0 18px auto;
+            position: fixed;
+            top: 18px;
+            right: 18px;
+            z-index: 9999;
             border: 1px solid var(--line);
-            background: transparent;
+            background: rgba(255,255,255,0.85);
             color: var(--text);
             border-radius: 999px;
-            padding: 8px 14px;
-            font-weight: bold;
+            width: 42px;
+            height: 42px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
             cursor: pointer;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.12);
         }
     </style>
 </head>
 <body data-theme="light">
+    <!-- Vista de acceso para usuarios ya registrados. -->
     <div class="container">
-        <button class="theme-toggle" id="themeToggle" type="button">Modo oscuro</button>
+        <button class="theme-toggle" id="themeToggle" type="button" aria-label="Cambiar a modo oscuro">🌙</button>
         <h1>Iniciar sesión</h1>
         <form method="post">
             {% csrf_token %}
@@ -139,7 +147,8 @@
         function applyTheme(theme) {
             const isDark = theme === 'dark';
             body.setAttribute('data-theme', isDark ? 'dark' : 'light');
-            toggle.textContent = isDark ? 'Modo claro' : 'Modo oscuro';
+            toggle.textContent = isDark ? '☀️' : '🌙';
+            toggle.setAttribute('aria-label', isDark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro');
         }
 
         applyTheme(storedTheme || 'light');

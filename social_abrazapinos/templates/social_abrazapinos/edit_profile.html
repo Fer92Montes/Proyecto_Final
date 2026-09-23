@@ -107,6 +107,21 @@
             cursor: pointer;
         }
 
+        .theme-toggle {
+            position: fixed;
+            top: 18px;
+            right: 18px;
+            z-index: 9999;
+            width: 42px;
+            height: 42px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            border-radius: 999px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.14);
+        }
+
         a {
             color: var(--primary-alt);
             text-decoration: none;
@@ -128,8 +143,9 @@
     </style>
 </head>
 <body data-theme="light">
+    <!-- Pantalla de edición para actualizar datos, bio y contraseña del usuario. -->
     <div class="container">
-        <button class="theme-toggle" id="themeToggle" type="button" style="margin-bottom: 18px;">Modo oscuro</button>
+        <button class="theme-toggle" id="themeToggle" type="button" style="margin-bottom: 18px;" aria-label="Cambiar a modo oscuro">🌙</button>
         <h1>Editar perfil</h1>
 
         <form method="post">
@@ -188,7 +204,8 @@
         function applyTheme(theme) {
             const isDark = theme === 'dark';
             body.setAttribute('data-theme', isDark ? 'dark' : 'light');
-            toggle.textContent = isDark ? 'Modo claro' : 'Modo oscuro';
+            toggle.textContent = isDark ? '☀️' : '🌙';
+            toggle.setAttribute('aria-label', isDark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro');
         }
 
         applyTheme(storedTheme || 'light');

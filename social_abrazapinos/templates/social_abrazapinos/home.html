@@ -69,7 +69,7 @@
             display: flex;
             justify-content: flex-end;
             align-items: center;
-            gap: 14px;
+            gap: 10px;
             flex-wrap: wrap;
         }
 
@@ -77,21 +77,48 @@
             color: white;
             text-decoration: none;
             font-weight: 600;
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.18);
+            border-radius: 10px;
+            padding: 8px 12px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 36px;
+            transition: background 0.15s ease, transform 0.15s ease;
+        }
+
+        .nav a:hover {
+            background: rgba(255,255,255,0.14);
+            transform: translateY(-1px);
         }
 
         .nav .welcome {
             color: rgba(255,255,255,0.9);
             font-weight: 600;
+            padding: 8px 12px;
+            border-radius: 10px;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.12);
         }
 
         .theme-toggle {
+            position: fixed;
+            top: 18px;
+            right: 18px;
+            z-index: 9999;
             background: rgba(255,255,255,0.12);
             border: 1px solid rgba(255,255,255,0.28);
             color: white;
             border-radius: 999px;
-            padding: 8px 14px;
-            font-weight: bold;
+            width: 42px;
+            height: 42px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
             cursor: pointer;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.18);
         }
 
         .container {
@@ -197,13 +224,14 @@
     </style>
 </head>
 <body data-theme="light">
+    <!-- Cabecera principal con acceso a la social, la tienda y el panel de sesión. -->
     <header class="topbar">
         <div class="nav">
             <div class="brand">Abrazapinos</div>
             <div class="nav-links">
                 <a href="/social/">Social</a>
                 <a href="/shop/">Compraventa</a>
-                <button class="theme-toggle" id="themeToggle" type="button">Modo oscuro</button>
+                <button class="theme-toggle" id="themeToggle" type="button" aria-label="Cambiar a modo oscuro">🌙</button>
                 {% if user.is_authenticated %}
                     <span class="welcome">Hola, {{ user.username }}</span>
                     <a href="{% url 'profile' %}">Mi perfil</a>
@@ -217,6 +245,7 @@
     </header>
 
     <main class="container">
+        <!-- Presentación principal de la comunidad con mensaje de bienvenida y acceso rápido. -->
         <section class="hero">
             <h1>Bienvenido a la parte social</h1>
             <p>Comparte historias, rutas, momentos y novedades con la comunidad de Abrazapinos.</p>
@@ -234,6 +263,7 @@
         </section>
 
         <section>
+            <!-- Feed principal: aquí se muestran las publicaciones visibles para la vista actual. -->
             <h2 class="section-title">Últimas publicaciones</h2>
             <div class="cards">
                 {% for post in posts %}
@@ -257,6 +287,7 @@
     </main>
 
     <script>
+        // Gestiona el modo claro/oscuro y lo conserva en el navegador del usuario.
         const body = document.body;
         const toggle = document.getElementById('themeToggle');
         const storedTheme = localStorage.getItem('theme');
@@ -264,7 +295,8 @@
         function applyTheme(theme) {
             const isDark = theme === 'dark';
             body.setAttribute('data-theme', isDark ? 'dark' : 'light');
-            toggle.textContent = isDark ? 'Modo claro' : 'Modo oscuro';
+            toggle.textContent = isDark ? '☀️' : '🌙';
+            toggle.setAttribute('aria-label', isDark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro');
         }
 
         applyTheme(storedTheme || 'light');
