@@ -1,12 +1,18 @@
 """Rutas principales del proyecto Django."""
 
 from django.contrib import admin
+from django.shortcuts import render
 from django.urls import include, path
-from django.views.generic import RedirectView
+
+
+def landing_page(request):
+    """Renderiza la portada principal del club con acceso directo a social y tienda."""
+    return render(request, 'landing.html')
+
 
 urlpatterns = [
-    # Redirige la raíz del dominio a la sección social por defecto.
-    path('', RedirectView.as_view(url='/social/'), name='home'),
+    # Portada principal del club con enlaces directos a social y compraventa.
+    path('', landing_page, name='home'),
     # Ruta del panel de administración de Django.
     path('admin/', admin.site.urls),
     # Incluye todas las rutas de la parte social de la web.

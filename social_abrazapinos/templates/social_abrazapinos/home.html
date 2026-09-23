@@ -68,6 +68,21 @@
             font-weight: bold;
         }
 
+        /* El texto del club funciona como marca y como atajo a la portada para mantener siempre la navegación estable. */
+        .brand a {
+            display: inline-block;
+            padding: 8px 12px;
+            border-radius: 10px;
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.18);
+            transition: background 0.2s ease, transform 0.2s ease;
+        }
+
+        .brand a:hover {
+            background: rgba(255,255,255,0.14);
+            transform: translateY(-1px);
+        }
+
         .nav-links {
             display: flex;
             justify-content: flex-end;
@@ -243,9 +258,10 @@
 </head>
 <body data-theme="light">
     <!-- La cabecera define la navegación global y cambia según el estado de autenticación del usuario. -->
+    <!-- La cabecera de la social mantiene el nombre del club como acceso al inicio y las rutas principales del producto. -->
     <header class="topbar">
         <div class="nav">
-            <div class="brand">Abrazapinos</div>
+            <div class="brand"><a href="/" style="color: white; text-decoration: none; font-weight: bold;">Abrazapinos</a></div>
             <div class="nav-links">
                 <a href="/social/">Social</a>
                 <a href="/shop/">Compraventa</a>

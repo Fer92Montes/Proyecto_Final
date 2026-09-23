@@ -64,6 +64,21 @@
             font-weight: bold;
         }
 
+        /* En el detalle del producto, la marca del club funciona como punto de retorno visual a la home sin alterar la experiencia de compra. */
+        .brand a {
+            display: inline-block;
+            padding: 8px 12px;
+            border-radius: 10px;
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.18);
+            transition: background 0.2s ease, transform 0.2s ease;
+        }
+
+        .brand a:hover {
+            background: rgba(255,255,255,0.14);
+            transform: translateY(-1px);
+        }
+
         .nav-links {
             display: flex;
             justify-content: flex-end;
@@ -166,7 +181,7 @@
     <!-- La vista detalle recibe un producto concreto por su pk y renderiza toda su información. -->
     <header class="topbar">
         <div class="nav">
-            <div class="brand">Abrazapinos Shop</div>
+            <div class="brand"><a href="/" style="color: white; text-decoration: none; font-weight: bold;">Abrazapinos</a></div>
             <div class="nav-links">
                 <a href="/social/">Social</a>
                 <a href="{% url 'shop_home' %}">Tienda</a>
@@ -184,7 +199,6 @@
             <div class="description">{{ product.description }}</div>
             <div class="actions">
                 <a href="{% url 'shop_home' %}">Volver a la tienda</a>
-                <a class="secondary" href="/social/">Ir al social</a>
             </div>
         </article>
     </main>

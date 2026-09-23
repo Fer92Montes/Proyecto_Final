@@ -74,6 +74,21 @@
             font-weight: bold;
         }
 
+        /* La marca del club aparece en la cabecera para reforzar la identidad visual y permitir volver al inicio desde la tienda. */
+        .brand a {
+            display: inline-block;
+            padding: 8px 12px;
+            border-radius: 10px;
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.18);
+            transition: background 0.2s ease, transform 0.2s ease;
+        }
+
+        .brand a:hover {
+            background: rgba(255,255,255,0.14);
+            transform: translateY(-1px);
+        }
+
         .nav-links {
             display: flex;
             justify-content: flex-end;
@@ -194,9 +209,10 @@
 </head>
 <body data-theme="light">
     <!-- La cabecera de la tienda ofrece acceso a la parte social y al catálogo de productos. -->
+    <!-- El nombre del club vuelve a comportarse como enlace a la portada principal para mantener la navegación constante. -->
     <header class="topbar">
         <div class="nav">
-            <div class="brand">Abrazapinos Tienda</div>
+            <div class="brand"><a href="/" style="color: white; text-decoration: none; font-weight: bold;">Abrazapinos</a></div>
             <div class="nav-links">
                 <a href="/social/">Social</a>
                 <a href="/shop/">Compraventa</a>
