@@ -134,12 +134,17 @@
     </style>
 </head>
 <body data-theme="light">
-    <!-- Formulario para crear una publicación con visibilidad configurable. -->
+    <!-- Este formulario reutiliza el mismo template para crear o editar una publicación según si existe un pk. -->
     <div class="container">
         <button class="theme-toggle theme-toggle--offset" id="themeToggle" type="button" aria-label="Cambiar a modo oscuro">🌙</button>
-        <h1>Crear publicación</h1>
+        {% if form.instance.pk %}
+            <h1>Editar publicación</h1>
+        {% else %}
+            <h1>Crear publicación</h1>
+        {% endif %}
         <form method="post">
             {% csrf_token %}
+            <!-- El formulario se renderiza campo por campo para mostrar los errores de validación en el mismo bloque. -->
             {% for field in form %}
                 <div>
                     <label for="{{ field.id_for_label }}">{{ field.label }}</label>
@@ -152,13 +157,18 @@
                 </div>
             {% endfor %}
             <div class="actions">
-                <button type="submit">Publicar</button>
+                {% if form.instance.pk %}
+                    <button type="submit">Guardar cambios</button>
+                {% else %}
+                    <button type="submit">Publicar</button>
+                {% endif %}
                 <a href="{% url 'social_home' %}">Cancelar</a>
             </div>
         </form>
     </div>
 
     <script>
+        // Se aplica el tema guardado y se alterna en el navegador sin salir del formulario.
         const body = document.body;
         const toggle = document.getElementById('themeToggle');
         const storedTheme = localStorage.getItem('theme');

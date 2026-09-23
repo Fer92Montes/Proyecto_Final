@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ product.name }} | Abrazapinos Shop</title>
+    <style>
+        :root {
+            --bg: #f4efe9;
+            --bg-alt: #ece3d8;
+            --panel: #ffffff;
+            --panel-soft: #faf6f2;
+            --primary: #6b3f28;
+            --primary-dark: #4a2a1a;
+            --primary-soft: #e9d0b5;
+            --text: #2c1d12;
+            --muted: #6f5849;
+            --line: #e5d7ca;
+            --shadow: 0 12px 30px rgba(43, 29, 19, 0.08);
+        }
+
+        body[data-theme="dark"] {
+            --bg: #171a1a;
+            --bg-alt: #1e2322;
+            --panel: #1d2321;
+            --panel-soft: #202827;
+            --primary: #c88b5d;
+            --primary-dark: #a96b40;
+            --primary-soft: #47352b;
+            --text: #edf5f1;
+            --muted: #b7c7c1;
+            --line: #2d3534;
+            --shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: linear-gradient(180deg, var(--bg) 0%, var(--bg-alt) 100%);
+            color: var(--text);
+        }
+
+        .topbar {
+            background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+            color: white;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+        }
+
+        .nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 18px 20px;
+            flex-wrap: wrap;
+        }
+
+        .brand {
+            font-size: 1.3rem;
+            font-weight: bold;
+        }
+
+        .nav-links {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .nav a {
+            color: white;
+            text-decoration: none;
+            font-weight: bold;
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.18);
+            border-radius: 10px;
+            padding: 8px 12px;
+        }
+
+        .theme-toggle {
+            position: fixed;
+            top: 18px;
+            right: 18px;
+            z-index: 9999;
+            background: rgba(255,255,255,0.12);
+            border: 1px solid rgba(255,255,255,0.28);
+            color: white;
+            border-radius: 999px;
+            width: 42px;
+            height: 42px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            cursor: pointer;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 42px 20px 60px;
+        }
+
+        .card {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: 24px;
+            box-shadow: var(--shadow);
+            padding: 30px;
+        }
+
+        .price {
+            font-size: 2.3rem;
+            font-weight: bold;
+            color: var(--primary);
+            margin: 18px 0;
+        }
+
+        .stock {
+            display: inline-block;
+            background: var(--primary-soft);
+            color: var(--primary-dark);
+            padding: 8px 12px;
+            border-radius: 999px;
+            font-weight: bold;
+            margin-bottom: 18px;
+        }
+
+        .description {
+            line-height: 1.8;
+            font-size: 1.08rem;
+            color: var(--muted);
+            white-space: pre-line;
+        }
+
+        .actions {
+            margin-top: 30px;
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .actions a {
+            display: inline-block;
+            text-decoration: none;
+            background: var(--primary);
+            color: white;
+            padding: 12px 18px;
+            border-radius: 12px;
+            font-weight: bold;
+        }
+
+        .actions a.secondary {
+            background: transparent;
+            border: 1px solid var(--line);
+            color: var(--text);
+        }
+    </style>
+</head>
+<body data-theme="light">
+    <!-- La vista detalle recibe un producto concreto por su pk y renderiza toda su información. -->
+    <header class="topbar">
+        <div class="nav">
+            <div class="brand">Abrazapinos Shop</div>
+            <div class="nav-links">
+                <a href="/social/">Social</a>
+                <a href="{% url 'shop_home' %}">Tienda</a>
+                <button class="theme-toggle" id="themeToggle" type="button" aria-label="Cambiar a modo oscuro">🌙</button>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <article class="card">
+            <!-- El producto viene del contexto 'product' y se muestra con nombre, precio y descripción. -->
+            <h1>{{ product.name }}</h1>
+            <div class="stock">Stock disponible: {{ product.stock }}</div>
+            <div class="price">{{ product.price|stringformat:".2f" }} €</div>
+            <div class="description">{{ product.description }}</div>
+            <div class="actions">
+                <a href="{% url 'shop_home' %}">Volver a la tienda</a>
+                <a class="secondary" href="/social/">Ir al social</a>
+            </div>
+        </article>
+    </main>
+
+    <script>
+        // La alternancia del tema se gestiona con localStorage para que la vista se mantenga consistente.
+        const body = document.body;
+        const toggle = document.getElementById('themeToggle');
+        const storedTheme = localStorage.getItem('theme');
+
+        function applyTheme(theme) {
+            const isDark = theme === 'dark';
+            body.setAttribute('data-theme', isDark ? 'dark' : 'light');
+            toggle.textContent = isDark ? '☀️' : '🌙';
+            toggle.setAttribute('aria-label', isDark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro');
+        }
+
+        applyTheme(storedTheme || 'light');
+        toggle.addEventListener('click', () => {
+            const nextTheme = body.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+            localStorage.setItem('theme', nextTheme);
+            applyTheme(nextTheme);
+        });
+    </script>
+</body>
+</html>

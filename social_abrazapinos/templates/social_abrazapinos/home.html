@@ -222,6 +222,18 @@
             font-weight: bold;
         }
 
+        .card .actions {
+            margin-top: 16px;
+            justify-content: flex-start;
+        }
+
+        .card .actions a {
+            background: var(--primary);
+            color: white;
+            border: 1px solid var(--primary);
+            box-shadow: 0 8px 18px rgba(29, 91, 61, 0.18);
+        }
+
         .card p {
             margin: 0;
             line-height: 1.6;
@@ -230,7 +242,7 @@
     </style>
 </head>
 <body data-theme="light">
-    <!-- Cabecera principal con acceso a la social, la tienda y el panel de sesión. -->
+    <!-- La cabecera define la navegación global y cambia según el estado de autenticación del usuario. -->
     <header class="topbar">
         <div class="nav">
             <div class="brand">Abrazapinos</div>
@@ -269,7 +281,7 @@
         </section>
 
         <section>
-            <!-- Feed principal: aquí se muestran las publicaciones visibles para la vista actual. -->
+            <!-- El feed recorre el contexto 'posts', que ya viene filtrado por visibilidad en la vista. -->
             <h2 class="section-title">Últimas publicaciones</h2>
             <div class="cards">
                 {% for post in posts %}
@@ -280,7 +292,10 @@
                             <a class="author-link" href="{% url 'user_profile' post.author.username %}">{{ post.author.username }}</a>
                             · {{ post.created_at|date:"d/m/Y H:i" }}
                         </p>
-                        <p>{{ post.content }}</p>
+                        <p>{{ post.content|truncatewords:18 }}</p>
+                        <div class="actions">
+                            <a href="{% url 'detalle_publicacion' post.pk %}">Ver publicación</a>
+                        </div>
                     </article>
                 {% empty %}
                     <div class="card">

@@ -6,6 +6,8 @@ import sys
 
 def main():
     """Ejecuta las tareas administrativas de Django."""
+    # El entorno de Django necesita conocer la configuración principal del proyecto
+    # antes de ejecutar comandos como runserver, migrate o test.
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
     try:
         from django.core.management import execute_from_command_line

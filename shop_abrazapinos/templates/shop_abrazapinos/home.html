@@ -193,7 +193,7 @@
     </style>
 </head>
 <body data-theme="light">
-    <!-- Cabecera de la tienda con navegación entre social y compraventa. -->
+    <!-- La cabecera de la tienda ofrece acceso a la parte social y al catálogo de productos. -->
     <header class="topbar">
         <div class="nav">
             <div class="brand">Abrazapinos Tienda</div>
@@ -222,15 +222,18 @@
         </section>
 
         <section>
-            <!-- Sección que presenta los productos disponibles en la comunidad. -->
+            <!-- El contexto 'products' se rellena desde la vista y se itera para listar cada artículo disponible. -->
             <h2>Productos destacados</h2>
             <div class="cards">
                 {% for product in products %}
                     <article class="card">
                         <h3>{{ product.name }}</h3>
-                        <p>{{ product.description }}</p>
-                        <div class="price">{{ product.price }} €</div>
+                        <p>{{ product.description|truncatewords:20 }}</p>
+                        <div class="price">{{ product.price|stringformat:".2f" }} €</div>
                         <div class="stock">Stock disponible: {{ product.stock }}</div>
+                        <div style="margin-top: 16px;">
+                            <a href="{% url 'detalle_producto' product.pk %}" style="display: inline-block; text-decoration:none; background: var(--primary); color: white; border-radius: 10px; padding: 10px 14px; font-weight: bold;">Ver detalle</a>
+                        </div>
                     </article>
                 {% empty %}
                     <div class="card">
@@ -243,7 +246,7 @@
     </main>
 
     <script>
-        // Aplica el modo claro/oscuro global y lo guarda para futuras visitas.
+        // El modo visual se guarda en localStorage para mantener la preferencia del usuario.
         const body = document.body;
         const toggle = document.getElementById('themeToggle');
         const storedTheme = localStorage.getItem('theme');

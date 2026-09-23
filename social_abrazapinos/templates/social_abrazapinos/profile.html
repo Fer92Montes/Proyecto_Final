@@ -191,7 +191,7 @@
     </style>
 </head>
 <body data-theme="light">
-    <!-- Perfil privado del usuario autenticado con información personal y publicaciones. -->
+    <!-- Esta vista requiere sesión activa y renderiza el perfil privado del usuario con sus datos, amigos y posts. -->
     <div class="container">
         <div class="header">
             <div>
@@ -205,6 +205,7 @@
             </div>
         </div>
 
+        <!-- Las tarjetas muestran el contexto del usuario actual y se rellenan directamente desde los campos del modelo User y Profile. -->
         <div class="grid">
             <div class="card">
                 <h3>Nombre de usuario</h3>
@@ -248,6 +249,7 @@
         <div class="card section-block">
             <h3>Amigos</h3>
             {% if friends %}
+                <!-- El bloque recorre la relación de amistad para enlazar con el perfil público de cada contacto. -->
                 <ul>
                     {% for friend in friends %}
                         <li><a href="{% url 'user_profile' friend.username %}">{{ friend.username }}</a></li>
@@ -261,11 +263,15 @@
         <div class="card section-block">
             <h3>Mis publicaciones</h3>
             {% if posts %}
+                <!-- Se listan las publicaciones del usuario actual para que pueda abrir el detalle de cada una. -->
                 {% for post in posts %}
                     <div style="border-top:1px solid var(--line); padding-top:12px; margin-top:12px;">
                         <strong>{{ post.title }}</strong>
                         <p>{{ post.content }}</p>
                         <small>{{ post.get_visibility_display }} · {{ post.created_at|date:"d/m/Y H:i" }}</small>
+                        <div style="margin-top:12px;">
+                            <a href="{% url 'detalle_publicacion' post.pk %}" style="display:inline-block; text-decoration:none; background: var(--primary); color: white; border-radius: 10px; padding: 8px 12px; font-weight: bold;">Entrar a la publicación</a>
+                        </div>
                     </div>
                 {% endfor %}
             {% else %}
@@ -277,6 +283,7 @@
     </div>
 
     <script>
+        // El tema se almacena en localStorage para que la selección persista entre visitas.
         const body = document.body;
         const toggle = document.getElementById('themeToggle');
         const storedTheme = localStorage.getItem('theme');

@@ -28,11 +28,15 @@ class Profile(models.Model):
     @property
     def display_name(self):
         """Devuelve el nombre completo si existe; si no, el usuario."""
+        # Se construye el nombre visible a partir de nombre + apellidos para mostrar
+        # un perfil más amigable en la interfaz sin perder el username como fallback.
         full_name = ' '.join(part for part in (self.user.first_name, self.user.last_name) if part).strip()
         return full_name or self.user.username
 
     def friends(self):
         """Obtiene los usuarios que siguen a este perfil."""
+        # Usa una consulta OR sobre ambas relaciones de amistad para incluir tanto
+        # usuarios que siguen al perfil como usuarios a los que sigue el perfil.
         return User.objects.filter(
             Q(friendships_from__to_user=self.user) | Q(friendships_to__from_user=self.user)
         ).distinct()
@@ -54,8 +58,12 @@ class Friendship(models.Model):
     @staticmethod
     def are_friends(user_a, user_b):
         """Comprueba si dos usuarios son amigos."""
+        # Si el usuario no existe o es el mismo usuario, se considera válido para
+        # evitar bloqueos innecesarios en vistas de perfil y publicaciones.
         if user_a is None or user_b is None or user_a == user_b:
             return True
+        # La relación es no dirigida: se comprueba en ambas direcciones para que
+        # la amistad sea simétrica independentemente de quién la creó.
         return Friendship.objects.filter(
             Q(from_user=user_a, to_user=user_b) | Q(from_user=user_b, to_user=user_a)
         ).exists()
@@ -86,14 +94,18 @@ class Post(models.Model):
 
     def is_visible_to(self, viewer):
         """Determina si un usuario puede ver la publicación."""
+        # El autor siempre puede ver su propia publicación, aunque sea privada.
         if self.author == viewer:
             return True
         if self.visibility == 'public':
             return True
         if self.visibility == 'friends':
+            # Las publicaciones de amigos solo son visibles para usuarios autenticados
+            # que realmente tengan una relación de amistad con el autor.
             if viewer is None or not getattr(viewer, 'is_authenticated', False):
                 return False
             return Friendship.are_friends(self.author, viewer)
+        # En el caso de 'private', solo el autor tiene acceso.
         return False
 
     def __str__(self):

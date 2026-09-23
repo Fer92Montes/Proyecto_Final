@@ -4,6 +4,7 @@ from django.contrib import messages
 from django.contrib.auth import login, logout
 from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
 from django.contrib.auth.models import User
+from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views import View
 from django.views.generic import TemplateView
@@ -14,7 +15,7 @@ from .forms import (
     FormularioPublicacion,
 )
 from .mixins import MixinContextoPerfil, MixinRequiereAutenticacion
-from .models import Friendship
+from .models import Friendship, Post
 from .services import ServicioSocial
 
 
@@ -25,6 +26,8 @@ class VistaInicioSocial(TemplateView):
 
     def get_context_data(self, **kwargs):
         """Añade las publicaciones visibles a la plantilla del inicio."""
+        # El feed principal usa el servicio compartido para centralizar la lógica de
+        # visibilidad y evitar duplicar reglas en cada vista del proyecto.
         contexto = super().get_context_data(**kwargs)
         contexto['posts'] = ServicioSocial.obtener_publicaciones_visibles(self.request.user)
         return contexto
@@ -60,6 +63,9 @@ class VistaEditarPerfil(MixinRequiereAutenticacion, View):
 
     def post(self, request, *args, **kwargs):
         """Procesa la actualización del perfil o del cambio de contraseña."""
+        # La vista acepta dos formularios en el mismo template: uno para datos del
+        # perfil y otro para cambio de contraseña. La clave del submit determina qué
+        # bloque se ejecuta.
         perfil = ServicioSocial.obtener_perfil_usuario(request.user)
         formulario_perfil = FormularioPerfil(request.POST or None, instance=perfil)
         formulario_contraseña = FormularioCambioContrasena(request.user, request.POST or None)
@@ -102,6 +108,63 @@ class VistaCrearPublicacion(MixinRequiereAutenticacion, View):
         return render(request, self.template_name, {'form': formulario})
 
 
+class VistaDetallePublicacion(View):
+    """Muestra el contenido completo de una publicación con sus datos del autor."""
+
+    template_name = 'social_abrazapinos/post_detail.html'
+
+    def get(self, request, pk, *args, **kwargs):
+        """Carga la publicación y valida si el usuario actual puede verla."""
+        # Antes de renderizar la vista de detalle, se comprueba la visibilidad de la
+        # publicación para evitar que un usuario vea contenido que no debería.
+        publicacion = get_object_or_404(Post, pk=pk)
+
+        if not publicacion.is_visible_to(request.user if request.user.is_authenticated else None):
+            raise Http404('La publicación no está disponible para ti.')
+
+        return render(request, self.template_name, {'post': publicacion})
+
+
+class VistaEditarPublicacion(MixinRequiereAutenticacion, View):
+    """Permite editar una publicación siempre que el usuario sea su autor."""
+
+    template_name = 'social_abrazapinos/post_form.html'
+
+    def get(self, request, pk, *args, **kwargs):
+        """Muestra el formulario rellenado con la publicación actual."""
+        publicacion = get_object_or_404(Post, pk=pk)
+        if publicacion.author != request.user:
+            raise Http404('No tienes permisos para editar esta publicación.')
+        return render(request, self.template_name, {'form': FormularioPublicacion(instance=publicacion)})
+
+    def post(self, request, pk, *args, **kwargs):
+        """Actualiza la publicación si el autor envía datos válidos."""
+        publicacion = get_object_or_404(Post, pk=pk)
+        if publicacion.author != request.user:
+            raise Http404('No tienes permisos para editar esta publicación.')
+
+        formulario = FormularioPublicacion(request.POST, instance=publicacion)
+        if formulario.is_valid():
+            formulario.save()
+            messages.success(request, 'Publicación actualizada correctamente.')
+            return redirect('detalle_publicacion', pk=publicacion.pk)
+        return render(request, self.template_name, {'form': formulario})
+
+
+class VistaEliminarPublicacion(MixinRequiereAutenticacion, View):
+    """Elimina una publicación únicamente si el usuario autenticado es su autor."""
+
+    def post(self, request, pk, *args, **kwargs):
+        """Borra la publicación y devuelve al feed principal."""
+        publicacion = get_object_or_404(Post, pk=pk)
+        if publicacion.author != request.user:
+            raise Http404('No tienes permisos para eliminar esta publicación.')
+
+        publicacion.delete()
+        messages.success(request, 'Publicación eliminada correctamente.')
+        return redirect('social_home')
+
+
 class VistaPerfilAjeno(View):
     """Muestra el perfil público de un usuario con sus publicaciones visibles."""
 
@@ -109,6 +172,8 @@ class VistaPerfilAjeno(View):
 
     def get(self, request, username, *args, **kwargs):
         """Obtiene el usuario visitado y prepara el contexto de la vista."""
+        # La vista del perfil ajeno combina información del usuario, perfil ampliado,
+        # amistades y publicaciones visibles para ese visitante concreto.
         usuario_visitado = get_object_or_404(User, username=username)
         perfil = ServicioSocial.obtener_perfil_usuario(usuario_visitado)
         visitante = request.user if request.user.is_authenticated else None
@@ -141,6 +206,8 @@ class VistaAgregarAmigo(MixinRequiereAutenticacion, View):
 
     def _agregar_amigo(self, request, username):
         """Lógica compartida para añadir un amigo y redirigir al perfil visitado."""
+        # get_or_create evita duplicados si la misma acción se llama varias veces,
+        # mientras que la validación evita relaciones inválidas consigo mismo.
         usuario_objetivo = get_object_or_404(User, username=username)
 
         if request.user == usuario_objetivo:
@@ -221,6 +288,9 @@ AddFriendView = VistaAgregarAmigo
 LoginView = VistaIniciarSesion
 LogoutView = VistaCerrarSesion
 RegisterView = VistaRegistro
+PostDetailView = VistaDetallePublicacion
+EditPostView = VistaEditarPublicacion
+DeletePostView = VistaEliminarPublicacion
 
 
 def inicio(request):

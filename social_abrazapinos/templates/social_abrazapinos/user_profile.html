@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Perfil de {{ profile_user.username }}</title>
     <style>
-        /* --- Variables de tema para perfiles públicos --- */
+        /* Variables del tema para mantener la misma paleta visual en perfiles públicos y perfiles privados. */
         :root {
             --bg: #f7f3ef;
             --bg-alt: #f0e8e2;
@@ -34,7 +34,7 @@
             --shadow: 0 14px 32px rgba(0,0,0,0.3);
         }
 
-        /* --- Base general --- */
+        /* Base general para que el contenido se adapte bien a diferentes tamaños de pantalla. */
         * { box-sizing: border-box; }
 
         body {
@@ -45,7 +45,7 @@
             transition: background 0.2s ease, color 0.2s ease;
         }
 
-        /* --- Perfil y columnas de datos --- */
+        /* Contenedor principal del perfil, con estructura y separaciones para mostrar la información ordenada. */
         .container {
             max-width: 1080px;
             margin: 52px auto;
@@ -136,7 +136,7 @@
             padding-left: 18px;
         }
 
-        /* --- Botón del modo claro/oscuro --- */
+        /* Botón flotante para alternar entre modo claro y oscuro sin salir de la vista. */
         .theme-toggle {
             position: fixed;
             top: 18px;
@@ -158,7 +158,7 @@
     </style>
 </head>
 <body data-theme="light">
-    <!-- Perfil público de otro usuario con información visible y posibilidad de añadirlo como amigo. -->
+    <!-- Vista pública del perfil de un usuario. Aquí se muestran sus datos, la relación con el usuario actual y el acceso a la zona social. -->
     <div class="container">
         <div class="header">
             <div>
@@ -167,16 +167,21 @@
             </div>
             <div class="header-actions">
                 <button class="theme-toggle" id="themeToggle" type="button" aria-label="Cambiar a modo oscuro">🌙</button>
+                <!-- Volver al feed principal de la red social. -->
+                <a class="btn" href="{% url 'social_home' %}">Volver a la social</a>
                 {% if user.is_authenticated and user != profile_user %}
                     {% if is_friend %}
+                        <!-- Si ya son amigos, se muestra el estado en lugar del botón de añadir. -->
                         <span class="btn friend">Amigo</span>
                     {% else %}
+                        <!-- Si no son amigos, se ofrece la acción para añadirles en la red. -->
                         <a class="btn" href="{% url 'add_friend' profile_user.username %}">Añadir a amigos</a>
                     {% endif %}
                 {% endif %}
             </div>
         </div>
 
+        <!-- Se muestran los datos básicos del perfil en tarjetas para que la información quede ordenada y legible. -->
         <div class="grid">
             <div class="card">
                 <h3>Nombre</h3>
@@ -212,6 +217,7 @@
         <div class="card section-block">
             <h3>Amigos</h3>
             {% if friends %}
+                <!-- Lista de contactos del usuario para poder navegar a sus perfiles. -->
                 <ul>
                     {% for friend in friends %}
                         <li><a href="{% url 'user_profile' friend.username %}">{{ friend.username }}</a></li>
@@ -230,17 +236,19 @@
                         <strong>{{ post.title }}</strong>
                         <p>{{ post.content }}</p>
                         <small>{{ post.get_visibility_display }} · {{ post.created_at|date:"d/m/Y H:i" }}</small>
+                        <div style="margin-top:12px;">
+                            <a href="{% url 'detalle_publicacion' post.pk %}" style="display:inline-block; text-decoration:none; background: var(--primary); color: white; border-radius: 10px; padding: 8px 12px; font-weight: bold;">Entrar a la publicación</a>
+                        </div>
                     </div>
                 {% endfor %}
             {% else %}
                 <p>Este usuario aún no ha publicado contenido.</p>
             {% endif %}
         </div>
-
-        <p style="margin-top: 22px;"><a href="{% url 'social_home' %}">Volver a la social</a></p>
     </div>
 
     <script>
+        // Guardamos el tema seleccionado del usuario para que se mantenga en la siguiente visita.
         const body = document.body;
         const toggle = document.getElementById('themeToggle');
         const storedTheme = localStorage.getItem('theme');
