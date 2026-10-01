@@ -10,6 +10,7 @@ __pycache__/
 *.py[cod]
 
 # Variables de entorno
+# Ignora secretos locales y sus variantes; conserva solo la plantilla sin credenciales.
 .env
 .env.*
 !.env.example

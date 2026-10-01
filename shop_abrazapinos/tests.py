@@ -76,6 +76,7 @@ class PruebasCarrito(TestCase):
 		self.assertContains(respuesta_descripcion, otro_producto.name)
 
 	def test_catalogo_pagina_seis_productos_y_conserva_busqueda(self):
+		"""Verifica tamaño de página y que el enlace anterior conserva el filtro activo."""
 		for numero in range(8):
 			Producto.objects.create(
 				name=f'Producto especial {numero}',

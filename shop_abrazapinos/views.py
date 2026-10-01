@@ -341,6 +341,7 @@ def confirmar_pedido(request):
 
 def _marcar_pedido_pagado(pedido_id, session_id):
     """Marca como pagado solo el pedido ligado a la sesión Stripe verificada."""
+    # El bloqueo de fila y la transición solo desde pendiente_pago hacen idempotente el evento.
     with transaction.atomic():
         pedido = Pedido.objects.select_for_update().get(pk=pedido_id)
         if pedido.stripe_session_id != session_id:
@@ -353,6 +354,7 @@ def _marcar_pedido_pagado(pedido_id, session_id):
 
 def _cancelar_pedido_y_liberar_stock(pedido_id):
     """Cancela un pago pendiente y devuelve sus unidades una sola vez al inventario."""
+    # La transición protegida evita reponer stock dos veces si llega más de un aviso de Stripe.
     with transaction.atomic():
         pedido = Pedido.objects.select_for_update().get(pk=pedido_id)
         if pedido.estado != 'pendiente_pago':
@@ -373,6 +375,7 @@ def stripe_success(request, pk):
         return redirect(f"{reverse('login')}?next={reverse('tramitar_pedido')}")
     pedido = get_object_or_404(Pedido, pk=pk, usuario=request.user)
     session_id = request.GET.get('session_id', '')
+    # El ID del navegador debe coincidir con la sesión guardada en el pedido antes de consultar Stripe.
     if not session_id or session_id != pedido.stripe_session_id:
         messages.error(request, 'No se pudo verificar la sesión de pago.')
         return redirect('ver_carrito')
@@ -384,6 +387,7 @@ def stripe_success(request, pk):
         messages.error(request, 'No se pudo comprobar el pago. Vuelve a intentarlo en unos instantes.')
         return redirect('ver_carrito')
 
+    # La URL de retorno no prueba el pago; se confirma solo tras leer payment_status desde la API.
     if sesion_pago.payment_status == 'paid' and _marcar_pedido_pagado(pedido.pk, session_id):
         request.session['carrito'] = {}
         return redirect('pedido_confirmado', pk=pedido.pk)
@@ -401,6 +405,7 @@ def stripe_cancel(request, pk):
     if pedido.estado == 'pendiente_pago' and pedido.stripe_session_id and settings.STRIPE_SECRET_KEY:
         try:
             cliente = _cliente_stripe()
+            # Se solicita expiración al proveedor y solo entonces se libera la reserva local.
             cliente.v1.checkout.sessions.expire(pedido.stripe_session_id)
             _cancelar_pedido_y_liberar_stock(pedido.pk)
         except stripe.StripeError:
@@ -414,6 +419,7 @@ def stripe_cancel(request, pk):
 @require_POST
 def stripe_webhook(request):
     """Valida la firma Stripe y procesa pagos o expiraciones de forma idempotente."""
+    # Esta ruta excluye CSRF porque Stripe no posee token Django; la firma HMAC autentica el cuerpo.
     if not settings.STRIPE_WEBHOOK_SECRET:
         return HttpResponse(status=500)
     firma = request.headers.get('Stripe-Signature', '')
@@ -426,11 +432,13 @@ def stripe_webhook(request):
     except (ValueError, stripe.SignatureVerificationError):
         return HttpResponse(status=400)
 
+    # La firma ya verificada permite usar metadata para localizar el pedido vinculado.
     sesion_pago = evento.data.object
     pedido_id = (sesion_pago.get('metadata') or {}).get('pedido_id')
     if not pedido_id:
         return HttpResponse(status=200)
 
+    # Los eventos asíncronos terminados solo se aprueban si reportan pago efectivamente liquidado.
     if evento.type in ('checkout.session.completed', 'checkout.session.async_payment_succeeded'):
         if sesion_pago.get('payment_status') == 'paid':
             _marcar_pedido_pagado(pedido_id, sesion_pago.get('id'))
