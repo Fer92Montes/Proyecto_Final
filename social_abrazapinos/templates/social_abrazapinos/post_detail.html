@@ -262,6 +262,8 @@
             <div class="nav-links">
                 <a href="{% url 'social_home' %}">Inicio</a>
                 <a href="{% url 'profile' %}">Mi perfil</a>
+                <!-- El cierre de sesión solo aparece para una cuenta autenticada. -->
+                {% if user.is_authenticated %}<a href="{% url 'logout' %}">Cerrar sesión</a>{% endif %}
                 <button class="theme-toggle" id="themeToggle" type="button" aria-label="Cambiar a modo oscuro">🌙</button>
             </div>
         </div>

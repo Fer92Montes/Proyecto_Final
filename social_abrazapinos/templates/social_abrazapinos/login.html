@@ -113,6 +113,8 @@
         <h1>Iniciar sesión</h1>
         <form method="post">
             {% csrf_token %}
+            <!-- Mantiene el destino local (por ejemplo, checkout) entre GET y POST del login. -->
+            <input type="hidden" name="next" value="{{ next }}">
             {% if form.non_field_errors %}
                 <ul class="errorlist">
                     {% for error in form.non_field_errors %}
@@ -139,12 +141,14 @@
         </form>
 
         <div class="links">
-            <p>¿No tienes cuenta? <a href="{% url 'register' %}">Regístrate aquí</a></p>
+            <!-- El destino se codifica en la URL para que registro continúe el mismo flujo. -->
+            <p>¿No tienes cuenta? <a href="{% url 'register' %}?next={{ next|urlencode }}">Regístrate aquí</a></p>
             <p><a href="{% url 'social_home' %}">Volver a la social</a></p>
         </div>
     </div>
 
     <script>
+        // El control del tema reutiliza la preferencia compartida con las demás vistas.
         const body = document.body;
         const toggle = document.getElementById('themeToggle');
         const storedTheme = localStorage.getItem('theme');

@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tramitar pedido | Abrazapinos</title>
+    <style>
+        /* Paleta compartida con la tienda y sus equivalentes para el modo oscuro. */
+        :root {
+            --bg: #f4efe9;
+            --bg-alt: #ece3d8;
+            --panel: #ffffff;
+            --primary: #6b3f28;
+            --primary-dark: #4a2a1a;
+            --text: #2c1d12;
+            --muted: #6f5849;
+            --line: #e5d7ca;
+            --error: #a52e24;
+            --shadow: 0 12px 30px rgba(43, 29, 19, 0.08);
+        }
+
+        body[data-theme="dark"] {
+            --bg: #171a1a;
+            --bg-alt: #1e2322;
+            --panel: #1d2321;
+            --primary: #c88b5d;
+            --primary-dark: #a96b40;
+            --text: #edf5f1;
+            --muted: #b7c7c1;
+            --line: #2d3534;
+            --error: #f7a1a1;
+            --shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            color: var(--text);
+            background: linear-gradient(180deg, var(--bg), var(--bg-alt));
+        }
+
+        .topbar { color: white; background: linear-gradient(135deg, var(--primary-dark), var(--primary)); }
+        .nav, .container { width: min(100% - 40px, 1120px); margin: 0 auto; }
+        .nav { min-height: 76px; display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; }
+        .nav-links { display: flex; gap: 10px; flex-wrap: wrap; }
+        .nav a { color: white; text-decoration: none; font-weight: bold; padding: 9px 12px; border: 1px solid rgba(255,255,255,.2); border-radius: 8px; }
+        .container { padding: 38px 0 64px; }
+        h1 { margin: 0 0 8px; }
+        .intro, .muted { color: var(--muted); }
+        /* El formulario y el resumen se presentan en columnas; la media query las apila en móvil. */
+        .checkout-grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 24px; align-items: start; margin-top: 28px; }
+        .checkout-form { display: grid; gap: 18px; }
+        .checkout-panel, .summary, .login-panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow); }
+        .checkout-panel, .summary { padding: 24px; }
+        .checkout-panel h2, .summary h2 { font-size: 1.15rem; margin: 0 0 20px; }
+        .field { display: grid; gap: 7px; margin-bottom: 16px; }
+        .field:last-child { margin-bottom: 0; }
+        label { font-weight: bold; }
+        input:not([type="radio"]) { width: 100%; min-height: 42px; padding: 9px 11px; border: 1px solid var(--line); border-radius: 7px; background: var(--panel); color: var(--text); font: inherit; }
+        input:focus { outline: 2px solid var(--primary); outline-offset: 1px; }
+        /* Presenta Stripe como único proveedor, dejando los datos de tarjeta en su checkout alojado. */
+        .stripe-option { display: flex; align-items: center; gap: 12px; padding: 14px; border: 1px solid var(--line); border-radius: 8px; }
+        .stripe-mark { color: #635bff; font-size: 1.25rem; font-weight: 800; }
+        .errors { color: var(--error); margin: 0; padding-left: 20px; }
+        .summary { position: sticky; top: 20px; }
+        .summary-line { display: flex; justify-content: space-between; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+        .summary-line:last-of-type { border-bottom: 0; }
+        .summary-total { display: flex; justify-content: space-between; gap: 12px; margin: 18px 0; font-size: 1.2rem; font-weight: bold; }
+        .summary .muted { font-size: .9rem; line-height: 1.5; }
+        /* Los botones comparten dimensiones; el checkout ofrece acciones diferentes para cuenta y confirmación. */
+        .primary-button, .secondary-button { display: block; width: 100%; border: 0; border-radius: 8px; padding: 12px 16px; color: white; background: #245b43; text-align: center; text-decoration: none; font: inherit; font-weight: bold; cursor: pointer; }
+        .secondary-button { width: auto; display: inline-block; background: var(--primary); }
+        .login-panel { max-width: 680px; margin: 30px auto 0; padding: 28px; }
+        .login-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 22px; }
+        .login-actions .secondary-button { flex: 1 1 190px; }
+        .messages { color: var(--muted); }
+
+        /* En pantallas estrechas se apila el resumen para evitar columnas demasiado angostas. */
+        @media (max-width: 760px) {
+            .checkout-grid { grid-template-columns: 1fr; }
+            .summary { position: static; grid-row: 1; }
+        }
+    </style>
+</head>
+<body data-theme="light">
+    <!-- Navegación del checkout: permite volver al carrito y cerrar la sesión autenticada. -->
+    <header class="topbar">
+        <nav class="nav" aria-label="Navegación principal">
+            <a href="/">Abrazapinos</a>
+            <div class="nav-links">
+                <a href="{% url 'ver_carrito' %}">Volver al carrito</a>
+                <a href="{% url 'shop_home' %}">Tienda</a>
+                {% if user.is_authenticated %}<a href="{% url 'logout' %}">Cerrar sesión</a>{% endif %}
+            </div>
+        </nav>
+    </header>
+
+    <main class="container">
+        <h1>Tramitar pedido</h1>
+        <p class="intro">Revisa los artículos y completa los datos de entrega.</p>
+        {% if messages %}
+            <div class="messages" role="status">
+                {% for message in messages %}<p>{{ message }}</p>{% endfor %}
+            </div>
+        {% endif %}
+
+        <!-- Los invitados ven solo el acceso; el carrito permanece en su sesión durante la autenticación. -->
+        {% if checkout_requires_login %}
+            <section class="login-panel">
+                <h2>Inicia sesión o crea una cuenta para continuar</h2>
+                <p class="muted">Tu carrito se conservará mientras accedes o te registras.</p>
+                <div class="login-actions">
+                    <a class="secondary-button" href="{% url 'login' %}?next={% url 'tramitar_pedido' %}">Iniciar sesión</a>
+                    <a class="secondary-button" href="{% url 'register' %}?next={% url 'tramitar_pedido' %}">Crear cuenta</a>
+                </div>
+            </section>
+        {% else %}
+            <!-- Este POST envía datos de entrega y pago; Django los valida antes de crear el pedido. -->
+            <form class="checkout-form" method="post" action="{% url 'confirmar_pedido' %}">
+                {% csrf_token %}
+                <!-- El método oculto solo admite Stripe; el servidor valida la elección con el formulario. -->
+                {% for hidden in form.hidden_fields %}{{ hidden }}{% endfor %}
+                {% if form.non_field_errors %}<ul class="errors">{{ form.non_field_errors }}</ul>{% endif %}
+                <div class="checkout-grid">
+                    <div>
+                        <!-- Los campos se generan desde FormularioTramitarPedido y muestran errores junto a cada dato. -->
+                        <section class="checkout-panel">
+                            <h2>1. Dirección de entrega</h2>
+                            {% for field in form %}
+                                {% if field.name != 'metodo_pago' %}
+                                    <div class="field">
+                                        {{ field.label_tag }}
+                                        {{ field }}
+                                        {% if field.errors %}<ul class="errors">{% for error in field.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
+                                    </div>
+                                {% endif %}
+                            {% endfor %}
+                        </section>
+
+                        <!-- Stripe Checkout aloja la captura segura; la aplicación nunca recibe datos de tarjeta. -->
+                        <section class="checkout-panel">
+                            <h2>2. Método de pago</h2>
+                            <div class="stripe-option" aria-label="Pago procesado de forma segura por Stripe">
+                                <span class="stripe-mark" aria-hidden="true">stripe</span>
+                                <span>Tarjeta bancaria mediante Stripe Checkout</span>
+                            </div>
+                            {% if form.metodo_pago.errors %}<ul class="errors">{% for error in form.metodo_pago.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
+                            <p class="muted">Al continuar se abrirá Stripe, donde introducirás los datos de la tarjeta. Este sitio no almacena esos datos.</p>
+                        </section>
+                    </div>
+
+                    <!-- El total procede de los productos consultados por la vista, no del formulario POST. -->
+                    <aside class="summary" aria-label="Resumen del pedido">
+                        <h2>Resumen del pedido</h2>
+                        {% for item in cart_items %}
+                            <div class="summary-line">
+                                <span>{{ item.product.name }} × {{ item.quantity }}</span>
+                                <strong>{{ item.subtotal|stringformat:".2f" }} €</strong>
+                            </div>
+                        {% endfor %}
+                        <div class="summary-total"><span>Total</span><span>{{ cart_total|stringformat:".2f" }} €</span></div>
+                        <button class="primary-button" type="submit">Pagar con Stripe</button>
+                        <p class="muted">El stock se reserva durante 35 minutos y solo se confirma el pedido cuando Stripe informa del pago.</p>
+                    </aside>
+                </div>
+            </form>
+        {% endif %}
+    </main>
+
+    <script>
+        // Restaura la preferencia visual almacenada por las páginas de tienda en el mismo navegador.
+        const checkoutTheme = localStorage.getItem('theme');
+        document.body.setAttribute('data-theme', checkoutTheme === 'dark' ? 'dark' : 'light');
+    </script>
+</body>
+</html>

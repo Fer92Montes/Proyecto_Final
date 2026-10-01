@@ -1,9 +1,15 @@
 """Configuración principal del proyecto Django de Abrazapinos."""
 
+import os
 from pathlib import Path
+
+from dotenv import load_dotenv
 
 # Ruta base del proyecto: BASE_DIR / 'subdirectorio'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Carga la configuración local sin sobrescribir variables ya definidas por el sistema.
+load_dotenv(BASE_DIR / '.env')
 
 
 # Configuración rápida para desarrollo, no apta para producción.
@@ -101,6 +107,11 @@ LOGOUT_REDIRECT_URL = '/social/'
 
 # Archivos estáticos (CSS, JavaScript, imágenes).
 STATIC_URL = 'static/'
+
+# Stripe Checkout lee secretos del entorno; nunca se guardan credenciales en el repositorio.
+STRIPE_SECRET_KEY = os.environ.get('STRIPE_SECRET_KEY', '')
+STRIPE_WEBHOOK_SECRET = os.environ.get('STRIPE_WEBHOOK_SECRET', '')
+STRIPE_CURRENCY = os.environ.get('STRIPE_CURRENCY', 'eur')
 
 
 # Configuración del servicio de correo.

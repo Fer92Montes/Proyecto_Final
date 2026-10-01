@@ -97,6 +97,66 @@
             flex-wrap: wrap;
         }
 
+        /* El desplegable se ancla al summary y queda por encima de las tarjetas del catálogo. */
+        .cart-widget { position: relative; }
+
+        .cart-widget summary {
+            list-style: none;
+            cursor: pointer;
+            color: white;
+            font-weight: bold;
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.18);
+            border-radius: 10px;
+            padding: 8px 12px;
+            min-height: 36px;
+        }
+
+        .cart-widget summary::-webkit-details-marker { display: none; }
+        .cart-count { margin-left: 4px; }
+
+        .cart-popover {
+            position: absolute;
+            z-index: 20;
+            top: calc(100% + 10px);
+            right: 0;
+            width: min(380px, calc(100vw - 36px));
+            padding: 16px;
+            color: var(--text);
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+        }
+
+        /* El panel limita su altura y permite desplazamiento si hay muchas líneas. */
+        .cart-popover-items { max-height: 300px; overflow-y: auto; }
+        .cart-popover-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 10px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--line); }
+        .cart-popover-product { display: grid; gap: 4px; min-width: 0; }
+        .cart-popover-product strong { overflow-wrap: anywhere; }
+        .cart-popover-product small, .cart-empty { color: var(--muted); }
+        .cart-popover-subtotal { white-space: nowrap; }
+        .cart-popover-actions { display: flex; align-items: center; gap: 8px; }
+        .cart-remove { width: 30px; height: 30px; padding: 0; border: 1px solid var(--line); border-radius: 7px; background: transparent; color: var(--text); font-size: 1.2rem; cursor: pointer; }
+        /* Los controles de cantidad ocupan una fila completa para seguir siendo legibles. */
+        .line-quantity-form { grid-column: 1 / -1; }
+        .cart-quantity-control { display: flex; align-items: center; gap: 4px; }
+        .cart-quantity-control input { width: 48px; height: 30px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); color: var(--text); text-align: center; font: inherit; }
+        .cart-quantity-step, .update-quantity { min-height: 30px; border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; background: var(--panel-soft); color: var(--text); cursor: pointer; }
+        .update-quantity { margin-left: auto; background: var(--primary); border-color: var(--primary); color: white; font-weight: bold; }
+        .cart-popover-total { display: flex; justify-content: space-between; padding: 14px 0; font-weight: bold; }
+        .cart-popover a.cart-open { display: flex; align-items: center; justify-content: center; min-height: 42px; margin-top: 4px; padding: 10px 12px; border: 0; border-radius: 8px; background: var(--primary); color: white; text-align: center; text-decoration: none; font-weight: bold; }
+
+        /* Los controles de compra se pueden envolver en pantallas estrechas sin desbordarse. */
+        .purchase-form { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+        .quantity-control { display: inline-flex; align-items: center; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+        .quantity-control button { width: 36px; height: 38px; border: 0; background: var(--panel-soft); color: var(--text); font-size: 1.15rem; cursor: pointer; }
+        .quantity-control button:disabled { opacity: .45; cursor: not-allowed; }
+        .quantity-control input { width: 48px; height: 38px; border: 0; border-left: 1px solid var(--line); border-right: 1px solid var(--line); background: var(--panel); color: var(--text); text-align: center; font: inherit; }
+        .add-to-cart { min-height: 38px; border: 0; border-radius: 8px; padding: 9px 12px; background: var(--primary); color: white; font-weight: bold; cursor: pointer; }
+        .add-to-cart:disabled { opacity: .55; cursor: not-allowed; }
+        .messages { margin: 20px 0; padding: 12px 16px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; color: var(--text); }
+
         .nav a {
             color: white;
             text-decoration: none;
@@ -205,10 +265,21 @@
             color: var(--muted);
             margin-top: 10px;
         }
+
+        /* El filtro usa GET para que la búsqueda se pueda compartir y sobreviva a la paginación. */
+        .catalog-search { display: flex; gap: 10px; align-items: end; flex-wrap: wrap; margin: 28px 0; }
+        .catalog-search label { display: grid; gap: 7px; flex: 1 1 280px; font-weight: bold; }
+        .catalog-search input { min-height: 42px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--text); font: inherit; }
+        .catalog-search button, .catalog-search .clear-search { min-height: 42px; display: inline-flex; align-items: center; justify-content: center; padding: 9px 14px; border: 1px solid var(--primary); border-radius: 8px; background: var(--primary); color: white; font: inherit; font-weight: bold; text-decoration: none; cursor: pointer; }
+        .catalog-search .clear-search { background: transparent; color: var(--text); border-color: var(--line); }
+        .catalog-results { margin: 0; color: var(--muted); }
+        .pagination { display: flex; justify-content: center; align-items: center; gap: 14px; margin-top: 28px; }
+        .pagination a { padding: 9px 12px; border: 1px solid var(--line); border-radius: 8px; color: var(--text); text-decoration: none; background: var(--panel); }
+        a:focus-visible, button:focus-visible, input:focus-visible { outline: 3px solid #d9903d; outline-offset: 3px; }
     </style>
 </head>
 <body data-theme="light">
-    <!-- La cabecera de la tienda ofrece acceso a la parte social y al catálogo de productos. -->
+    <!-- Cabecera común: navegación principal, acceso al resumen de sesión y autenticación. -->
     <!-- El nombre del club vuelve a comportarse como enlace a la portada principal para mantener la navegación constante. -->
     <header class="topbar">
         <div class="nav">
@@ -216,6 +287,8 @@
             <div class="nav-links">
                 <a href="/social/">Social</a>
                 <a href="/shop/">Compraventa</a>
+                <!-- El contador y desplegable se reutilizan en las páginas de catálogo y detalle. -->
+                {% include 'shop_abrazapinos/cart_dropdown.html' %}
                 <button class="theme-toggle" id="themeToggle" type="button" aria-label="Cambiar a modo oscuro">🌙</button>
                 {% if user.is_authenticated %}
                     <span>Hola, {{ user.username }}</span>
@@ -230,6 +303,12 @@
     </header>
 
     <main class="container">
+        <!-- Los mensajes informan del resultado de operaciones POST como añadir o editar cantidad. -->
+        {% if messages %}
+            <div class="messages" role="status">
+                {% for message in messages %}<p>{{ message }}</p>{% endfor %}
+            </div>
+        {% endif %}
         <!-- Banner promocional del comercio con una llamada a la acción visual. -->
         <section class="hero">
             <h1>Sección de compraventa</h1>
@@ -237,9 +316,22 @@
             <a href="/social/">Volver a la social</a>
         </section>
 
+        <!-- El filtro consulta nombre y descripción; el parámetro q se conserva en la URL. -->
+        <form class="catalog-search" method="get" action="{% url 'shop_home' %}" role="search">
+            <label for="product-search">Buscar productos
+                <input id="product-search" type="search" name="q" value="{{ search_query }}" placeholder="Nombre o descripción">
+            </label>
+            <button type="submit">Buscar</button>
+            {% if search_query %}<a class="clear-search" href="{% url 'shop_home' %}">Limpiar</a>{% endif %}
+        </form>
+
+        <!-- La vista entrega los productos ordenados y limita el bloque a artículos destacados. -->
         <section>
             <!-- El contexto 'products' se rellena desde la vista y se itera para listar cada artículo disponible. -->
-            <h2>Productos destacados</h2>
+            <h2>Productos</h2>
+            <p class="catalog-results" role="status">
+                {% if search_query %}{{ result_count }} resultado(s) para «{{ search_query }}»{% else %}{{ result_count }} producto(s) en la tienda{% endif %}
+            </p>
             <div class="cards">
                 {% for product in products %}
                     <article class="card">
@@ -250,14 +342,33 @@
                         <div style="margin-top: 16px;">
                             <a href="{% url 'detalle_producto' product.pk %}" style="display: inline-block; text-decoration:none; background: var(--primary); color: white; border-radius: 10px; padding: 10px 14px; font-weight: bold;">Ver detalle</a>
                         </div>
+                        <!-- El mismo formulario de cantidad se comparte con la vista de detalle. -->
+                        {% include 'shop_abrazapinos/quantity_control.html' with product=product %}
                     </article>
                 {% empty %}
                     <div class="card">
-                        <h3>No hay productos todavía</h3>
-                        <p>Cuando añadas artículos aparecerán aquí.</p>
+                        {% if search_query %}
+                            <h3>No se encontraron productos</h3>
+                            <p>Prueba con otro nombre o término de descripción.</p>
+                        {% else %}
+                            <h3>No hay productos todavía</h3>
+                            <p>Cuando añadas artículos aparecerán aquí.</p>
+                        {% endif %}
                     </div>
                 {% endfor %}
             </div>
+            {% if page_obj.has_other_pages %}
+                <!-- La navegación cambia page y conserva q para no perder el filtro activo. -->
+                <nav class="pagination" aria-label="Paginación de productos">
+                    {% if page_obj.has_previous %}
+                        <a href="?q={{ search_query|urlencode }}&amp;page={{ page_obj.previous_page_number }}">Anterior</a>
+                    {% endif %}
+                    <span aria-current="page">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+                    {% if page_obj.has_next %}
+                        <a href="?q={{ search_query|urlencode }}&amp;page={{ page_obj.next_page_number }}">Siguiente</a>
+                    {% endif %}
+                </nav>
+            {% endif %}
         </section>
     </main>
 
@@ -275,6 +386,33 @@
         }
 
         applyTheme(storedTheme || 'light');
+
+        // En el cliente se mejora la interacción; el servidor vuelve a validar los mismos límites.
+        document.querySelectorAll('.purchase-form').forEach((form) => {
+            const quantity = form.querySelector('input[name="quantity"]');
+            form.querySelectorAll('.quantity-step').forEach((button) => {
+                button.addEventListener('click', () => {
+                    const minimum = Number(quantity.min);
+                    const maximum = Number(quantity.max);
+                    const current = Number(quantity.value) || minimum;
+                    const step = Number(button.dataset.step);
+                    quantity.value = Math.min(maximum, Math.max(minimum, current + step));
+                });
+            });
+        });
+
+        // La cantidad cero se permite aquí para que el POST elimine esa línea del carrito.
+        document.querySelectorAll('.line-quantity-form').forEach((form) => {
+            const quantity = form.querySelector('input[name="quantity"]');
+            form.querySelectorAll('.cart-quantity-step').forEach((button) => {
+                button.addEventListener('click', () => {
+                    const minimum = Number(quantity.min);
+                    const maximum = Number(quantity.max);
+                    const current = Number(quantity.value) || minimum;
+                    quantity.value = Math.min(maximum, Math.max(minimum, current + Number(button.dataset.step)));
+                });
+            });
+        });
 
         toggle.addEventListener('click', () => {
             const nextTheme = body.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';

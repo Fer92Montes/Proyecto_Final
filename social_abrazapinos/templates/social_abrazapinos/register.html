@@ -108,6 +108,8 @@
         <h1>Crear cuenta</h1>
         <form method="post">
             {% csrf_token %}
+            <!-- Conserva el retorno al checkout tras crear la cuenta e iniciar sesión automáticamente. -->
+            <input type="hidden" name="next" value="{{ next }}">
             {% for field in form %}
                 <div>
                     <label for="{{ field.id_for_label }}">{{ field.label }}</label>
@@ -129,12 +131,14 @@
         </form>
 
         <div class="links">
-            <p>¿Ya tienes cuenta? <a href="{% url 'login' %}">Inicia sesión</a></p>
+            <!-- Login recibe el mismo destino para mantener la continuidad del flujo de compra. -->
+            <p>¿Ya tienes cuenta? <a href="{% url 'login' %}?next={{ next|urlencode }}">Inicia sesión</a></p>
             <p><a href="{% url 'social_home' %}">Volver a la social</a></p>
         </div>
     </div>
 
     <script>
+        // El control del tema reutiliza la preferencia compartida con las demás vistas.
         const body = document.body;
         const toggle = document.getElementById('themeToggle');
         const storedTheme = localStorage.getItem('theme');

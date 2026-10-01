@@ -27,11 +27,77 @@ class PruebasAppSocial(TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertIn('/social/login/', response.headers.get('Location', ''))
 
+    def test_feed_incluye_salto_accesible_al_contenido(self):
+        """Comprueba que teclado y lector de pantalla alcanzan el contenido principal."""
+        response = self.client.get(reverse('social_home'))
+        self.assertContains(response, 'Saltar al contenido')
+        self.assertContains(response, 'id="main-content" tabindex="-1"')
+
+    def test_busqueda_feed_filtra_solo_publicaciones_visibles(self):
+        """Busca texto del feed sin saltarse las reglas de visibilidad del servicio."""
+        Post.objects.create(
+            author=self.user,
+            title='Palabra pública',
+            content='Descripción indexable',
+            visibility='public',
+        )
+        Post.objects.create(
+            author=self.other,
+            title='Palabra confidencial',
+            content='No debe aparecer a visitantes',
+            visibility='private',
+        )
+
+        response = self.client.get(reverse('social_home'), {'q': 'Palabra'})
+
+        self.assertContains(response, 'Palabra pública')
+        self.assertNotContains(response, 'Palabra confidencial')
+        self.assertEqual(response.context['result_count'], 1)
+        self.assertEqual(response.context['search_query'], 'Palabra')
+
+    def test_feed_social_pagina_seis_publicaciones_y_conserva_busqueda(self):
+        """Comprueba seis publicaciones por página y retención de q entre páginas."""
+        for numero in range(8):
+            Post.objects.create(
+                author=self.user,
+                title=f'Ruta comunitaria {numero}',
+                content='Publicación de senderismo para comprobar el paginador.',
+                visibility='public',
+            )
+
+        response = self.client.get(reverse('social_home'), {'q': 'senderismo', 'page': '2'})
+
+        self.assertEqual(response.context['page_obj'].number, 2)
+        self.assertEqual(len(response.context['posts']), 2)
+        self.assertEqual(response.context['result_count'], 8)
+        self.assertEqual(response.context['search_query'], 'senderismo')
+        self.assertContains(response, 'aria-label="Paginación de publicaciones"')
+        self.assertContains(response, '?q=senderismo&amp;page=1')
+
     def test_authenticated_user_can_access_profile(self):
         """Comprueba que un usuario autenticado puede ver su perfil privado."""
         self.client.login(username='ana', password='Test1234')
         response = self.client.get(reverse('profile'))
         self.assertEqual(response.status_code, 200)
+
+    def test_login_y_registro_sin_destino_vuelven_al_feed_social(self):
+        """Comprueba que el feed es el destino predeterminado tras autenticarse."""
+        respuesta_login = self.client.post(
+            reverse('login'),
+            {'username': 'ana', 'password': 'Test1234'},
+        )
+        self.assertRedirects(respuesta_login, reverse('social_home'), fetch_redirect_response=False)
+
+        self.client.logout()
+        respuesta_registro = self.client.post(
+            reverse('register'),
+            {
+                'username': 'nueva_usuaria',
+                'password1': 'ClaveSegura123!Otra',
+                'password2': 'ClaveSegura123!Otra',
+            },
+        )
+        self.assertRedirects(respuesta_registro, reverse('social_home'), fetch_redirect_response=False)
 
     def test_friend_relationship_and_friend_visibility(self):
         """Valida que la relación de amistad y la visibilidad de posts funciona."""

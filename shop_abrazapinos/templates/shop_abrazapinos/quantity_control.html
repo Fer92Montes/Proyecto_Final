@@ -1,0 +1,16 @@
+<!-- Formulario POST reutilizable: el servidor vuelve a validar stock y cantidad antes de guardar. -->
+<form class="purchase-form" method="post" action="{% url 'cart_add' product.pk %}" data-stock="{{ product.stock }}">
+    {% csrf_token %}
+    <!-- `next` devuelve al usuario a la misma ficha o catálogo tras añadir el artículo. -->
+    <input type="hidden" name="next" value="{{ request.get_full_path }}">
+    <!-- Los botones de paso ajustan el input numérico; min/max reflejan unidades disponibles. -->
+    <div class="quantity-control" aria-label="Cantidad de {{ product.name }}">
+        <button type="button" class="quantity-step" data-step="-1" aria-label="Reducir cantidad">−</button>
+        <input type="number" name="quantity" value="1" min="1" max="{{ product.stock }}" aria-label="Cantidad" required {% if product.stock == 0 %}disabled{% endif %}>
+        <button type="button" class="quantity-step" data-step="1" aria-label="Aumentar cantidad" {% if product.stock == 0 %}disabled{% endif %}>+</button>
+    </div>
+    <!-- Sin existencias se bloquean tanto la edición como el envío del formulario. -->
+    <button class="add-to-cart" type="submit" {% if product.stock == 0 %}disabled{% endif %}>
+        {% if product.stock == 0 %}Sin existencias{% else %}Añadir al carrito{% endif %}
+    </button>
+</form>

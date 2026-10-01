@@ -1,0 +1,46 @@
+{# Este componente se incluye en las cabeceras y recibe cantidades e importes ya calculados por la vista. #}
+<details class="cart-widget">
+    {# El elemento details/summary permite abrir y cerrar el panel sin JavaScript adicional. #}
+    <summary aria-label="Abrir carrito de compra">
+        <span aria-hidden="true">🛒</span> Carrito <span class="cart-count">{{ cart_count }}</span>
+    </summary>
+    <div class="cart-popover">
+        {% if cart_items %}
+            <div class="cart-popover-items">
+                {% for item in cart_items %}
+                    {# Cada fila ofrece subtotal, eliminación directa y ajuste independiente de unidades. #}
+                    <div class="cart-popover-row">
+                        <div class="cart-popover-product">
+                            <strong>{{ item.product.name }}</strong>
+                            <small>{{ item.product.price|stringformat:".2f" }} € por unidad</small>
+                        </div>
+                        <div class="cart-popover-actions">
+                            <strong class="cart-popover-subtotal">{{ item.subtotal|stringformat:".2f" }} €</strong>
+                            <form method="post" action="{% url 'cart_remove' item.product.pk %}">
+                                {% csrf_token %}
+                                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                                <button class="cart-remove" type="submit" aria-label="Eliminar {{ item.product.name }}">×</button>
+                            </form>
+                        </div>
+                        <form class="line-quantity-form" method="post" action="{% url 'cart_update' item.product.pk %}">
+                            {% csrf_token %}
+                            {# El destino de retorno se valida en la vista antes de redirigir. #}
+                            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                            <div class="cart-quantity-control" aria-label="Cantidad de {{ item.product.name }}">
+                                <button class="cart-quantity-step" type="button" data-step="-1" aria-label="Reducir cantidad">−</button>
+                                <input type="number" name="quantity" value="{{ item.quantity }}" min="0" max="{{ item.product.stock }}" aria-label="Cantidad" required>
+                                <button class="cart-quantity-step" type="button" data-step="1" aria-label="Aumentar cantidad">+</button>
+                                <button class="update-quantity" type="submit">Actualizar</button>
+                            </div>
+                        </form>
+                    </div>
+                {% endfor %}
+            </div>
+            <div class="cart-popover-total"><span>Total</span><strong>{{ cart_total|stringformat:".2f" }} €</strong></div>
+        {% else %}
+            <p class="cart-empty">Todavía no has añadido productos.</p>
+        {% endif %}
+        {# El enlace conduce al resumen completo incluso cuando el carrito aún está vacío. #}
+        <a class="cart-open" href="{% url 'ver_carrito' %}">Ir al carrito</a>
+    </div>
+</details>

@@ -45,6 +45,34 @@
             transition: background 0.2s ease, color 0.2s ease;
         }
 
+        /* Permite saltar la navegación al contenido sin ocupar espacio hasta recibir foco. */
+        .skip-link {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            z-index: 10001;
+            padding: 10px 14px;
+            transform: translateY(-160%);
+            border-radius: 8px;
+            background: var(--panel);
+            color: var(--primary-dark);
+            font-weight: bold;
+        }
+
+        .skip-link:focus { transform: translateY(0); }
+
+        /* El foco se distingue sin depender del color de fondo ni del movimiento del puntero. */
+        a:focus-visible,
+        button:focus-visible,
+        input:focus-visible {
+            outline: 3px solid #d9903d;
+            outline-offset: 3px;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; }
+        }
+
         /* --- Cabecera y navegación --- */
         .topbar {
             background: linear-gradient(135deg, var(--primary-dark), var(--primary));
@@ -189,6 +217,17 @@
             transform: translateY(-1px);
         }
 
+        /* El buscador se adapta al ancho disponible y mantiene campos legibles en móvil. */
+        .feed-search { display: flex; align-items: end; flex-wrap: wrap; gap: 10px; margin: 0 0 28px; }
+        .feed-search label { display: grid; flex: 1 1 280px; gap: 7px; font-weight: bold; }
+        .feed-search input { min-height: 42px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--text); font: inherit; }
+        .feed-search button, .feed-search .clear-search { min-height: 42px; display: inline-flex; align-items: center; justify-content: center; padding: 9px 14px; border: 1px solid var(--primary); border-radius: 8px; background: var(--primary); color: white; font: inherit; font-weight: bold; text-decoration: none; cursor: pointer; }
+        .feed-search .clear-search { background: transparent; color: var(--text); border-color: var(--line); }
+        .feed-results { margin: 0 0 16px; color: var(--muted); }
+        /* Navegación del paginador, centrada y con áreas de interacción visibles. */
+        .pagination { display: flex; justify-content: center; align-items: center; gap: 14px; margin-top: 28px; }
+        .pagination a { padding: 9px 12px; border: 1px solid var(--line); border-radius: 8px; color: var(--text); text-decoration: none; background: var(--panel); }
+
         /* --- Feed y tarjetas --- */
         .section-title {
             margin: 0 0 18px;
@@ -257,6 +296,8 @@
     </style>
 </head>
 <body data-theme="light">
+    <!-- Primer control enfocable: lleva directamente al bloque principal del feed. -->
+    <a class="skip-link" href="#main-content">Saltar al contenido</a>
     <!-- La cabecera define la navegación global y cambia según el estado de autenticación del usuario. -->
     <!-- La cabecera de la social mantiene el nombre del club como acceso al inicio y las rutas principales del producto. -->
     <header class="topbar">
@@ -278,7 +319,7 @@
         </div>
     </header>
 
-    <main class="container">
+    <main class="container" id="main-content" tabindex="-1">
         <!-- Presentación principal de la comunidad con mensaje de bienvenida y acceso rápido. -->
         <section class="hero">
             <h1>Bienvenido a la parte social</h1>
@@ -296,9 +337,21 @@
             {% endif %}
         </section>
 
+        <!-- La búsqueda cubre título, contenido y autor; la vista conserva primero el filtro de permisos. -->
+        <form class="feed-search" method="get" action="{% url 'social_home' %}" role="search">
+            <label for="post-search">Buscar publicaciones
+                <input id="post-search" type="search" name="q" value="{{ search_query }}" placeholder="Título, contenido o usuario">
+            </label>
+            <button type="submit">Buscar</button>
+            {% if search_query %}<a class="clear-search" href="{% url 'social_home' %}">Limpiar</a>{% endif %}
+        </form>
+
         <section>
             <!-- El feed recorre el contexto 'posts', que ya viene filtrado por visibilidad en la vista. -->
             <h2 class="section-title">Últimas publicaciones</h2>
+            <p class="feed-results" role="status">
+                {% if search_query %}{{ result_count }} resultado(s) para «{{ search_query }}»{% else %}{{ result_count }} publicación(es) visibles{% endif %}
+            </p>
             <div class="cards">
                 {% for post in posts %}
                     <article class="card">
@@ -315,11 +368,28 @@
                     </article>
                 {% empty %}
                     <div class="card">
-                        <h3>No hay publicaciones todavía</h3>
-                        <p>Añade la primera historia para activar la comunidad.</p>
+                        {% if search_query %}
+                            <h3>No se encontraron publicaciones</h3>
+                            <p>Prueba con otro título, contenido o nombre de usuario.</p>
+                        {% else %}
+                            <h3>No hay publicaciones todavía</h3>
+                            <p>Añade la primera historia para activar la comunidad.</p>
+                        {% endif %}
                     </div>
                 {% endfor %}
             </div>
+            {% if page_obj.has_other_pages %}
+                <!-- Los enlaces cambian page y conservan q para mantener los resultados buscados. -->
+                <nav class="pagination" aria-label="Paginación de publicaciones">
+                    {% if page_obj.has_previous %}
+                        <a href="?q={{ search_query|urlencode }}&amp;page={{ page_obj.previous_page_number }}">Anterior</a>
+                    {% endif %}
+                    <span aria-current="page">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+                    {% if page_obj.has_next %}
+                        <a href="?q={{ search_query|urlencode }}&amp;page={{ page_obj.next_page_number }}">Siguiente</a>
+                    {% endif %}
+                </nav>
+            {% endif %}
         </section>
     </main>
 

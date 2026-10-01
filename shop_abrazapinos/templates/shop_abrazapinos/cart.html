@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Carrito | Abrazapinos</title>
+    <style>
+        /* Variables de presentación del carrito; el atributo data-theme cambia los valores sin duplicar reglas. */
+        :root {
+            --bg: #f4efe9;
+            --bg-alt: #ece3d8;
+            --panel: #ffffff;
+            --primary: #6b3f28;
+            --primary-dark: #4a2a1a;
+            --text: #2c1d12;
+            --muted: #6f5849;
+            --line: #e5d7ca;
+            --shadow: 0 12px 30px rgba(43, 29, 19, 0.08);
+        }
+
+        body[data-theme="dark"] {
+            --bg: #171a1a;
+            --bg-alt: #1e2322;
+            --panel: #1d2321;
+            --primary: #c88b5d;
+            --primary-dark: #a96b40;
+            --text: #edf5f1;
+            --muted: #b7c7c1;
+            --line: #2d3534;
+            --shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            color: var(--text);
+            background: linear-gradient(180deg, var(--bg), var(--bg-alt));
+        }
+
+        .topbar {
+            color: white;
+            background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+        }
+
+        /* Un ancho común alinea cabecera y contenido y conserva márgenes en pantallas pequeñas. */
+        .nav, .container {
+            width: min(100% - 40px, 1100px);
+            margin: 0 auto;
+        }
+
+        .nav {
+            min-height: 76px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .nav-links { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+        .nav a {
+            color: white;
+            text-decoration: none;
+            font-weight: bold;
+            padding: 9px 12px;
+            border: 1px solid rgba(255,255,255,.2);
+            border-radius: 8px;
+        }
+
+        .container { padding: 42px 0 64px; }
+        h1 { margin: 0 0 24px; }
+
+        /* La cuadrícula separa el listado editable del resumen del importe. */
+        .cart-layout { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 24px; align-items: start; }
+
+        .items, .summary, .empty-state {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+        }
+
+        .items { padding: 8px 22px; }
+
+        .cart-row {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            align-items: center;
+            gap: 12px 18px;
+            padding: 18px 0;
+            border-bottom: 1px solid var(--line);
+        }
+
+        .cart-row:last-child { border-bottom: 0; }
+        .cart-row h2 { font-size: 1.05rem; margin: 0 0 6px; }
+        .muted { color: var(--muted); font-size: .94rem; }
+        .subtotal { font-weight: bold; white-space: nowrap; }
+        .cart-row-actions { display: flex; align-items: center; gap: 12px; }
+        /* El formulario ocupa una fila completa; cero es válido para quitar el artículo. */
+        .line-quantity-form { grid-column: 1 / -1; }
+        .cart-quantity-control { display: flex; align-items: center; gap: 6px; }
+        .cart-quantity-control input { width: 54px; height: 38px; border: 1px solid var(--line); border-radius: 7px; background: var(--panel); color: var(--text); text-align: center; font: inherit; }
+        .cart-quantity-step, .update-quantity { min-height: 38px; border: 1px solid var(--line); border-radius: 7px; padding: 8px 11px; background: var(--panel-soft, var(--bg)); color: var(--text); cursor: pointer; }
+        .update-quantity { margin-left: 6px; background: var(--primary); border-color: var(--primary); color: white; font-weight: bold; }
+
+        button, .button {
+            border: 0;
+            border-radius: 8px;
+            padding: 10px 14px;
+            background: var(--primary);
+            color: white;
+            font: inherit;
+            font-weight: bold;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .remove-button { background: transparent; border: 1px solid var(--line); color: var(--text); }
+        .summary { padding: 22px; position: sticky; top: 20px; }
+        .summary h2 { margin: 0 0 20px; font-size: 1.1rem; }
+        .total { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 20px; font-size: 1.2rem; font-weight: bold; }
+        /* El espaciado se aplica al contenedor para que las dos acciones no queden pegadas. */
+        .summary-actions { display: grid; gap: 12px; }
+        .summary .button { display: block; margin: 0; text-align: center; }
+        .summary .checkout-button { background: #245b43; }
+        .summary .continue-button { background: transparent; border: 1px solid var(--line); color: var(--text); }
+        .empty-state { padding: 30px; text-align: center; }
+        .messages { margin-bottom: 20px; color: var(--muted); }
+
+        /* En móvil, el resumen pasa debajo/encima del listado y se elimina el posicionamiento sticky. */
+        @media (max-width: 700px) {
+            .cart-layout { grid-template-columns: 1fr; }
+            .cart-row { grid-template-columns: minmax(0, 1fr) auto; gap: 12px; }
+            .cart-row form { grid-column: 1 / -1; }
+            .summary { position: static; }
+        }
+    </style>
+</head>
+<body data-theme="light">
+    <!-- Cabecera compacta con retorno a tienda/social y cierre de sesión solo para cuentas activas. -->
+    <header class="topbar">
+        <nav class="nav" aria-label="Navegación principal">
+            <a href="/">Abrazapinos</a>
+            <div class="nav-links">
+                <a href="{% url 'shop_home' %}">Seguir comprando</a>
+                <a href="/social/">Social</a>
+                {% if user.is_authenticated %}<a href="{% url 'logout' %}">Cerrar sesión</a>{% endif %}
+            </div>
+        </nav>
+    </header>
+
+    <main class="container">
+        <h1>Tu carrito</h1>
+        <!-- Los mensajes proceden de las operaciones POST y comunican cambios o errores de stock. -->
+        {% if messages %}
+            <div class="messages" role="status">
+                {% for message in messages %}<p>{{ message }}</p>{% endfor %}
+            </div>
+        {% endif %}
+
+        <!-- El contexto contiene líneas y total ya normalizados por la vista, no precios enviados por el cliente. -->
+        {% if cart_items %}
+            <div class="cart-layout">
+                <section class="items" aria-label="Productos añadidos">
+                    {% for item in cart_items %}
+                        <article class="cart-row">
+                            <div>
+                                <h2>{{ item.product.name }}</h2>
+                                <div class="muted">{{ item.product.price|stringformat:".2f" }} € por unidad</div>
+                            </div>
+                            <div class="cart-row-actions">
+                                <div class="subtotal">{{ item.subtotal|stringformat:".2f" }} €</div>
+                                <form method="post" action="{% url 'cart_remove' item.product.pk %}">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="next" value="{% url 'ver_carrito' %}">
+                                    <button class="remove-button" type="submit" aria-label="Eliminar {{ item.product.name }}">Eliminar</button>
+                                </form>
+                            </div>
+                            <!-- El servidor valida el nuevo valor; cero elimina la línea de la sesión. -->
+                            <form class="line-quantity-form" method="post" action="{% url 'cart_update' item.product.pk %}">
+                                {% csrf_token %}
+                                <input type="hidden" name="next" value="{% url 'ver_carrito' %}">
+                                <div class="cart-quantity-control" aria-label="Cantidad de {{ item.product.name }}">
+                                    <button class="cart-quantity-step" type="button" data-step="-1" aria-label="Reducir cantidad">−</button>
+                                    <input type="number" name="quantity" value="{{ item.quantity }}" min="0" max="{{ item.product.stock }}" aria-label="Cantidad" required>
+                                    <button class="cart-quantity-step" type="button" data-step="1" aria-label="Aumentar cantidad">+</button>
+                                    <button class="update-quantity" type="submit">Actualizar</button>
+                                </div>
+                            </form>
+                        </article>
+                    {% endfor %}
+                </section>
+
+                <!-- El CTA inicia el checkout; continuar comprando conserva el carrito actual. -->
+                <aside class="summary" aria-label="Resumen del pedido">
+                    <h2>Resumen</h2>
+                    <div class="total"><span>Total</span><span>{{ cart_total|stringformat:".2f" }} €</span></div>
+                    <div class="summary-actions">
+                        <a class="button checkout-button" href="{% url 'tramitar_pedido' %}">Tramitar el pedido</a>
+                        <a class="button continue-button" href="{% url 'shop_home' %}">Seguir comprando</a>
+                    </div>
+                </aside>
+            </div>
+        {% else %}
+            <section class="empty-state">
+                <h2>Tu carrito está vacío</h2>
+                <p class="muted">Añade algún producto de la tienda para verlo aquí.</p>
+                <a class="button" href="{% url 'shop_home' %}">Ir a la tienda</a>
+            </section>
+        {% endif %}
+    </main>
+
+    <script>
+        // Se mantiene la misma preferencia de tema que en las demás páginas de la tienda.
+        const savedTheme = localStorage.getItem('theme');
+        document.body.setAttribute('data-theme', savedTheme === 'dark' ? 'dark' : 'light');
+
+        // Los botones actualizan el input visualmente; el POST sigue siendo la fuente validada por Django.
+        document.querySelectorAll('.line-quantity-form').forEach((form) => {
+            const quantity = form.querySelector('input[name="quantity"]');
+            form.querySelectorAll('.cart-quantity-step').forEach((button) => {
+                button.addEventListener('click', () => {
+                    const minimum = Number(quantity.min);
+                    const maximum = Number(quantity.max);
+                    const current = Number(quantity.value) || minimum;
+                    quantity.value = Math.min(maximum, Math.max(minimum, current + Number(button.dataset.step)));
+                });
+            });
+        });
+    </script>
+</body>
+</html>

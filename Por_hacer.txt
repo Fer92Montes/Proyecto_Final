@@ -1,0 +1,6 @@
+Generar el historial de compras del usuario, que pueda verlo tanto el usuario como los administradores:
+    - Los administradores deberian tener una parte donde puedan ver los pedidos realizados y un filtrarlos por producto, usuarios etc, ya tendria que ver como hacerlo
+Generar que los admins puedan añadir nuevos productos, modificar los que hay, etc
+Comprobar que los productos tienen un "stock", y si llega a cero, que no se pueda comprar, que apareca como agotado
+Añadir la funcionalidad de instagram, que se puedan subir publicaciones de la parte social a una cuenta en concreto
+Mejorar la claridad de botones y demas en general en la aplicacion

@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pedido confirmado | Abrazapinos</title>
+    <style>
+        /* Estilos autocontenidos para presentar la confirmación usando la misma paleta de tienda. */
+        :root { --bg: #f4efe9; --panel: #fff; --primary: #6b3f28; --primary-dark: #4a2a1a; --text: #2c1d12; --muted: #6f5849; --line: #e5d7ca; }
+        body[data-theme="dark"] { --bg: #171a1a; --panel: #1d2321; --primary: #c88b5d; --primary-dark: #a96b40; --text: #edf5f1; --muted: #b7c7c1; --line: #2d3534; }
+        * { box-sizing: border-box; }
+        body { margin: 0; font-family: Arial, sans-serif; color: var(--text); background: linear-gradient(180deg, var(--bg), #ece3d8); }
+        body[data-theme="dark"] { background: linear-gradient(180deg, #171a1a, #1e2322); }
+        .topbar { color: white; background: linear-gradient(135deg, var(--primary-dark), var(--primary)); }
+        .nav, main { width: min(100% - 40px, 820px); margin: 0 auto; }
+        .nav { min-height: 76px; display: flex; justify-content: space-between; align-items: center; }
+        .nav a { color: white; text-decoration: none; font-weight: bold; }
+        main { padding: 54px 0; }
+        .confirmation { padding: 30px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; }
+        .confirmation h1 { margin-top: 0; }
+        .muted { color: var(--muted); }
+        .order-lines { padding: 0; list-style: none; }
+        .order-lines li, .total { display: flex; justify-content: space-between; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+        .total { border-bottom: 0; font-size: 1.2rem; font-weight: bold; }
+        .button { display: inline-block; margin-top: 18px; padding: 11px 16px; border-radius: 8px; background: #245b43; color: white; text-decoration: none; font-weight: bold; }
+    </style>
+</head>
+<body data-theme="light">
+    <!-- La navegación ofrece salida al catálogo tras consultar el pedido registrado. -->
+    <header class="topbar">
+        <nav class="nav" aria-label="Navegación principal">
+            <a href="/">Abrazapinos</a>
+            <a href="{% url 'shop_home' %}">Volver a la tienda</a>
+        </nav>
+    </header>
+    <main>
+        <!-- La vista entrega solo el pedido perteneciente al usuario autenticado actual. -->
+        <section class="confirmation">
+            <h1>{% if pedido.estado == 'pagado' %}Pago confirmado{% else %}Pago pendiente{% endif %}</h1>
+            <p class="muted">Número de pedido: #{{ pedido.pk }} · Estado: {{ pedido.get_estado_display|default:pedido.estado }}</p>
+            <h2>Entrega para {{ pedido.destinatario }}</h2>
+            <p>{{ pedido.direccion }}, {{ pedido.codigo_postal }} {{ pedido.ciudad }}, {{ pedido.provincia }}, {{ pedido.pais }}</p>
+            <p>Método de pago preferido: {{ pedido.get_metodo_pago_display }}</p>
+            <!-- Las líneas muestran instantáneas de nombre y precio guardadas al confirmar. -->
+            <ul class="order-lines">
+                {% for linea in pedido.lineas.all %}
+                    <li><span>{{ linea.nombre_producto }} × {{ linea.cantidad }}</span><strong>{{ linea.subtotal|stringformat:".2f" }} €</strong></li>
+                {% endfor %}
+            </ul>
+            <div class="total"><span>Total</span><span>{{ pedido.total|stringformat:".2f" }} €</span></div>
+            {% if pedido.estado == 'pagado' %}
+                <p class="muted">Stripe ha confirmado el pago de este pedido.</p>
+            {% else %}
+                <p class="muted">Stripe aún no ha confirmado el pago. El pedido no se preparará hasta recibir la confirmación.</p>
+            {% endif %}
+            <a class="button" href="{% url 'shop_home' %}">Seguir comprando</a>
+        </section>
+    </main>
+    <script>
+        // Mantiene la preferencia de tema guardada durante todo el proceso de compra.
+        const savedTheme = localStorage.getItem('theme');
+        document.body.setAttribute('data-theme', savedTheme === 'dark' ? 'dark' : 'light');
+    </script>
+</body>
+</html>

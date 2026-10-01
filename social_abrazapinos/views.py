@@ -4,8 +4,11 @@ from django.contrib import messages
 from django.contrib.auth import login, logout
 from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
 from django.contrib.auth.models import User
+from django.core.paginator import Paginator
+from django.db.models import Q
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.views import View
 from django.views.generic import TemplateView
 
@@ -19,6 +22,20 @@ from .models import Friendship, Post
 from .services import ServicioSocial
 
 
+def _destino_autenticacion(request):
+    """Recupera únicamente destinos de retorno pertenecientes al mismo sitio."""
+    # Se acepta el destino tanto en el formulario POST como al entrar por enlace GET,
+    # pero solo si Django confirma que apunta a un host local permitido.
+    destino = request.POST.get('next') or request.GET.get('next', '')
+    if destino and url_has_allowed_host_and_scheme(
+        destino,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        return destino
+    return ''
+
+
 class VistaInicioSocial(TemplateView):
     """Muestra el feed principal de la red social."""
 
@@ -29,7 +46,21 @@ class VistaInicioSocial(TemplateView):
         # El feed principal usa el servicio compartido para centralizar la lógica de
         # visibilidad y evitar duplicar reglas en cada vista del proyecto.
         contexto = super().get_context_data(**kwargs)
-        contexto['posts'] = ServicioSocial.obtener_publicaciones_visibles(self.request.user)
+        consulta = self.request.GET.get('q', '').strip()
+        publicaciones = ServicioSocial.obtener_publicaciones_visibles(self.request.user)
+        if consulta:
+            # La búsqueda se aplica después de permisos, limitando resultados a posts visibles.
+            publicaciones = publicaciones.filter(
+                Q(title__icontains=consulta)
+                | Q(content__icontains=consulta)
+                | Q(author__username__icontains=consulta)
+            )
+        # Se pagina después de visibilidad y búsqueda para no mezclar resultados no autorizados.
+        pagina = Paginator(publicaciones, 6).get_page(self.request.GET.get('page'))
+        contexto['posts'] = pagina
+        contexto['page_obj'] = pagina
+        contexto['search_query'] = consulta
+        contexto['result_count'] = pagina.paginator.count
         return contexto
 
 
@@ -226,20 +257,28 @@ class VistaIniciarSesion(View):
 
     def get(self, request, *args, **kwargs):
         """Muestra el formulario de login si el usuario no está autenticado."""
+        # Si ya existe una sesión, se conserva el destino solicitado o se usa el feed.
         if request.user.is_authenticated:
-            return redirect('social_home')
-        return render(request, self.template_name, {'form': AuthenticationForm()})
+            return redirect(_destino_autenticacion(request) or 'social_home')
+        return render(request, self.template_name, {
+            'form': AuthenticationForm(),
+            'next': _destino_autenticacion(request),
+        })
 
     def post(self, request, *args, **kwargs):
-        """Valida las credenciales y redirige al perfil si todo es correcto."""
+        """Valida credenciales y vuelve al destino solicitado o al feed social."""
         if request.user.is_authenticated:
-            return redirect('social_home')
+            return redirect(_destino_autenticacion(request) or 'social_home')
 
         formulario = AuthenticationForm(request, data=request.POST)
         if formulario.is_valid():
             login(request, formulario.get_user())
-            return redirect('profile')
-        return render(request, self.template_name, {'form': formulario})
+            # Se continúa la acción original cuando existe `next`; por defecto, se abre el feed.
+            return redirect(_destino_autenticacion(request) or 'social_home')
+        return render(request, self.template_name, {
+            'form': formulario,
+            'next': _destino_autenticacion(request),
+        })
 
 
 class VistaCerrarSesion(View):
@@ -260,13 +299,16 @@ class VistaRegistro(View):
     def get(self, request, *args, **kwargs):
         """Muestra el formulario de alta de usuario."""
         if request.user.is_authenticated:
-            return redirect('social_home')
-        return render(request, self.template_name, {'form': UserCreationForm()})
+            return redirect(_destino_autenticacion(request) or 'social_home')
+        return render(request, self.template_name, {
+            'form': UserCreationForm(),
+            'next': _destino_autenticacion(request),
+        })
 
     def post(self, request, *args, **kwargs):
-        """Guarda el usuario nuevo y redirige a su perfil privado."""
+        """Crea la cuenta y redirige al destino solicitado o al feed social."""
         if request.user.is_authenticated:
-            return redirect('social_home')
+            return redirect(_destino_autenticacion(request) or 'social_home')
 
         formulario = UserCreationForm(request.POST)
         if formulario.is_valid():
@@ -274,8 +316,12 @@ class VistaRegistro(View):
             ServicioSocial.obtener_perfil_usuario(usuario)
             login(request, usuario)
             messages.success(request, 'Usuario registrado con éxito.')
-            return redirect('profile')
-        return render(request, self.template_name, {'form': formulario})
+            # Registro y login automático comparten el mismo destino predeterminado.
+            return redirect(_destino_autenticacion(request) or 'social_home')
+        return render(request, self.template_name, {
+            'form': formulario,
+            'next': _destino_autenticacion(request),
+        })
 
 
 # Alias funcional para mantener compatibilidad con el resto del proyecto.
