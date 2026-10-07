@@ -139,10 +139,16 @@
         <button class="theme-toggle theme-toggle--offset" id="themeToggle" type="button" aria-label="Cambiar a modo oscuro">🌙</button>
         {% if form.instance.pk %}
             <h1>Editar publicación</h1>
+            <!-- En edición se ofrece contexto visual de la imagen guardada; el campo permite reemplazarla o quitarla. -->
+            {% if form.instance.image %}
+                <p>Imagen actual:</p>
+                <img src="{{ form.instance.image.url }}" alt="Imagen actual de la publicación" style="display:block;max-width:100%;max-height:320px;margin-bottom:18px;border-radius:12px;">
+            {% endif %}
         {% else %}
             <h1>Crear publicación</h1>
         {% endif %}
-        <form method="post">
+        <!-- multipart/form-data permite enviar simultáneamente campos y archivo de imagen a request.FILES. -->
+        <form method="post" enctype="multipart/form-data">
             {% csrf_token %}
             <!-- El formulario se renderiza campo por campo para mostrar los errores de validación en el mismo bloque. -->
             {% for field in form %}

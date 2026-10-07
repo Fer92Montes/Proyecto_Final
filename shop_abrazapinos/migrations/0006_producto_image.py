@@ -3,6 +3,7 @@
 from django.db import migrations, models
 
 
+# Añade imagen opcional al producto para que el catálogo pueda mostrar fotografías.
 class Migration(migrations.Migration):
 
     dependencies = [

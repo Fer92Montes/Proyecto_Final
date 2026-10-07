@@ -35,13 +35,17 @@ PERMISO_PRODUCTO_DELETE = 'shop_abrazapinos.delete_producto'
 
 
 class VistaGestionProductos(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
-    """Muestra a personal autorizado el catálogo y las acciones disponibles."""
+    """Presenta el catálogo a cuentas con permisos de gestión.
+
+    El acceso a la lista requiere al menos un permiso de catálogo, mientras que
+    cada botón y endpoint comprueba por separado alta, edición o borrado.
+    """
 
     template_name = 'shop_abrazapinos/management.html'
     login_url = 'login'
 
     def test_func(self):
-        """Permite entrar si la cuenta tiene algún permiso de catálogo."""
+        """Permite entrar si hay al menos un permiso de gestión del catálogo."""
         return any(self.request.user.has_perm(permiso) for permiso in (
             PERMISO_PRODUCTO_ADD,
             PERMISO_PRODUCTO_CHANGE,
@@ -49,6 +53,7 @@ class VistaGestionProductos(LoginRequiredMixin, UserPassesTestMixin, TemplateVie
         ))
 
     def get_context_data(self, **kwargs):
+        """Añade productos y permisos individuales para condicionar las acciones."""
         contexto = super().get_context_data(**kwargs)
         contexto.update({
             'products': Producto.objects.all(),
@@ -62,7 +67,11 @@ class VistaGestionProductos(LoginRequiredMixin, UserPassesTestMixin, TemplateVie
 @login_required(login_url='login')
 @permission_required(PERMISO_PRODUCTO_ADD, raise_exception=True)
 def crear_producto(request):
-    """Crea un artículo del catálogo con los datos e imagen enviados."""
+    """Crea un producto desde la web con imagen y configuración opcional de tallas.
+
+    Requiere `add_producto`; `request.FILES` procesa la carga multipart y el
+    ModelForm valida los campos antes de persistir el catálogo.
+    """
     if request.method == 'POST':
         formulario = FormularioProducto(request.POST, request.FILES)
         if formulario.is_valid():
@@ -80,7 +89,11 @@ def crear_producto(request):
 @login_required(login_url='login')
 @permission_required(PERMISO_PRODUCTO_CHANGE, raise_exception=True)
 def editar_producto(request, pk):
-    """Actualiza un producto y limpia su imagen anterior al reemplazarla."""
+    """Edita datos, imagen y requisito de talla de un producto autorizado.
+
+    El archivo anterior se elimina solo tras guardar con éxito un reemplazo o
+    eliminación, evitando huérfanos sin perder la imagen ante un formulario inválido.
+    """
     producto = get_object_or_404(Producto, pk=pk)
     imagen_anterior = producto.image.name
     if request.method == 'POST':
@@ -104,7 +117,11 @@ def editar_producto(request, pk):
 @permission_required(PERMISO_PRODUCTO_DELETE, raise_exception=True)
 @require_POST
 def eliminar_producto(request, pk):
-    """Elimina un producto si no forma parte del historial protegido de pedidos."""
+    """Elimina un producto sin referencias históricas y su imagen almacenada.
+
+    `LineaPedido.producto` usa `PROTECT`; si hay pedidos asociados se informa del
+    impedimento y se conserva la trazabilidad de compras.
+    """
     producto = get_object_or_404(Producto, pk=pk)
     nombre = producto.name
     imagen = producto.image.name
@@ -128,7 +145,11 @@ def _cliente_stripe():
 
 
 def obtener_resumen_carrito(request):
-    """Normaliza las cantidades de sesión y prepara importes para las plantillas."""
+    """Valida el carrito guardado y calcula líneas, tallas y totales del servidor.
+
+    Reconoce claves antiguas sin talla y nuevas con talla, descarta entradas
+    inválidas y limita conjuntamente todas las variantes al stock global real.
+    """
     # La sesión almacena ID/talla/cantidad; se descartan datos malformados.
     carrito_sesion = request.session.get('carrito', {})
     if not isinstance(carrito_sesion, dict):
@@ -200,12 +221,16 @@ def _redireccion_carrito(request, destino_por_defecto):
 
 
 def _clave_linea_carrito(producto_id, talla=''):
-    """Construye una clave distinta para cada talla sin cambiar claves antiguas."""
+    """Identifica una línea por producto/talla y conserva carritos anteriores.
+
+    Los productos sin talla siguen usando solo su ID; las prendas separan cada
+    variante para que una talla no reemplace a otra en la sesión.
+    """
     return f'{producto_id}:{talla}' if talla else str(producto_id)
 
 
 def _leer_clave_linea_carrito(clave):
-    """Interpreta claves históricas y nuevas del carrito de forma segura."""
+    """Valida claves de sesión antiguas o con talla y devuelve ID y variante."""
     try:
         partes = str(clave).split(':', 1)
         producto_id = int(partes[0])
@@ -270,7 +295,11 @@ def ver_carrito(request):
 
 @require_POST
 def anadir_al_carrito(request, pk):
-    """Añade una cantidad al carrito sin permitir superar las existencias."""
+    """Añade una cantidad y variante tras validar talla y stock compartido.
+
+    La talla se compara con las opciones del modelo y se suma la cantidad de todas
+    las tallas del producto antes de aceptar la operación.
+    """
     producto = get_object_or_404(Producto, pk=pk)
     try:
         cantidad = int(request.POST.get('quantity', '1'))
@@ -320,7 +349,11 @@ def quitar_del_carrito(request, pk):
 
 @require_POST
 def actualizar_cantidad_carrito(request, pk):
-    """Establece la cantidad deseada; cero elimina la línea del carrito."""
+    """Actualiza una variante específica sin exceder el inventario compartido.
+
+    La cantidad cero elimina solo la talla elegida; valores negativos, tallas
+    manipuladas o totales superiores al stock se rechazan.
+    """
     producto = get_object_or_404(Producto, pk=pk)
     try:
         cantidad = int(request.POST.get('quantity', ''))
@@ -378,7 +411,11 @@ def tramitar_pedido(request):
 
 @require_POST
 def confirmar_pedido(request):
-    """Reserva existencias y redirige a la página segura de Stripe Checkout."""
+    """Congela líneas y tallas, reserva stock y crea un Checkout de Stripe.
+
+    Los precios se reconstruyen desde la base dentro de una transacción y cada
+    línea conserva nombre, precio y talla para el historial permanente.
+    """
     if not request.user.is_authenticated:
         return redirect(f"{reverse('login')}?next={reverse('tramitar_pedido')}")
 
@@ -631,6 +668,38 @@ def pedido_confirmado(request, pk):
     return render(request, 'shop_abrazapinos/order_confirmation.html', {'pedido': pedido})
 
 
+@require_GET
+@login_required(login_url='login')
+def detalle_pedido(request, pk):
+    """Muestra líneas, importes y entrega solo al usuario propietario del pedido."""
+    pedido = get_object_or_404(
+        Pedido.objects.prefetch_related('lineas'),
+        pk=pk,
+        usuario=request.user,
+    )
+    return render(request, 'shop_abrazapinos/order_detail.html', {'pedido': pedido})
+
+
+@require_GET
+@login_required(login_url='login')
+def historial_compras(request):
+    """Lista pedidos propios de cualquier estado y enlaza las fichas de detalle.
+
+    La consulta filtra por `request.user`, no por un ID de usuario recibido del
+    navegador, por lo que cada sesión ve exclusivamente su historial privado.
+    """
+    pedidos = (
+        Pedido.objects.filter(usuario=request.user)
+        .prefetch_related('lineas')
+        .order_by('-creado_en')
+    )
+    return render(
+        request,
+        'shop_abrazapinos/order_history.html',
+        {'pedidos': pedidos},
+    )
+
+
 home = inicio
 
 __all__ = [
@@ -639,6 +708,8 @@ __all__ = [
     'anadir_al_carrito',
     'actualizar_cantidad_carrito',
     'confirmar_pedido',
+    'detalle_pedido',
+    'historial_compras',
     'inicio',
     'home',
     'quitar_del_carrito',

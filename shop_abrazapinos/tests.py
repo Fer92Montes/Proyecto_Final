@@ -114,6 +114,61 @@ class PruebasCarrito(TestCase):
 		self.assertContains(respuesta_detalle, 'Añadir al carrito')
 		self.assertContains(respuesta_detalle, 'Reducir cantidad')
 
+	def test_home_tienda_enlaza_historial_de_compras_solo_con_sesion(self):
+		"""La tienda enlaza a la página privada del historial de pedidos."""
+		respuesta_anonima = self.client.get(reverse('shop_home'))
+		self.assertNotContains(respuesta_anonima, 'Mi historial de compras')
+
+		usuario = User.objects.create_user(username='comprador_historial', password='ClaveSegura123!')
+		self.client.force_login(usuario)
+		respuesta_autenticada = self.client.get(reverse('shop_home'))
+		self.assertContains(respuesta_autenticada, 'Mi historial de compras')
+		self.assertContains(respuesta_autenticada, reverse('historial_compras'))
+
+	def test_historial_de_compras_lista_pedidos_propios_y_enlaza_detalles(self):
+		"""La página muestra todos los estados propios y no filtra pedidos ajenos."""
+		usuario = User.objects.create_user(username='titular_historial', password='ClaveSegura123!')
+		otro_usuario = User.objects.create_user(username='otro_titular', password='ClaveSegura123!')
+		pedido = Pedido.objects.create(
+			usuario=usuario,
+			destinatario='Titular Historial',
+			direccion='Calle del Club 1',
+			ciudad='Baza',
+			provincia='Granada',
+			codigo_postal='18800',
+			pais='España',
+			metodo_pago='stripe',
+			total=Decimal('24.50'),
+			estado='cancelado',
+		)
+		pedido_ajeno = Pedido.objects.create(
+			usuario=otro_usuario,
+			destinatario='Otro usuario',
+			direccion='Calle ajena 2',
+			ciudad='Baza',
+			provincia='Granada',
+			codigo_postal='18800',
+			pais='España',
+			metodo_pago='stripe',
+			total=Decimal('10.00'),
+			estado='pagado',
+		)
+		self.client.force_login(usuario)
+
+		respuesta = self.client.get(reverse('historial_compras'))
+
+		self.assertEqual(respuesta.status_code, 200)
+		self.assertContains(respuesta, 'Pedido #{}'.format(pedido.pk))
+		self.assertContains(respuesta, reverse('detalle_pedido', args=[pedido.pk]))
+		self.assertNotContains(respuesta, 'Pedido #{}'.format(pedido_ajeno.pk))
+		self.assertNotContains(respuesta, pedido_ajeno.destinatario)
+
+	def test_historial_de_compras_requiere_inicio_de_sesion(self):
+		"""Los visitantes deben autenticarse antes de consultar el historial."""
+		respuesta = self.client.get(reverse('historial_compras'))
+		self.assertEqual(respuesta.status_code, 302)
+		self.assertIn('/social/login/', respuesta.headers.get('Location', ''))
+
 	def test_catalogo_busca_por_nombre_y_descripcion(self):
 		"""Busca texto en ambos campos y devuelve el filtro para conservarlo en la vista."""
 		otro_producto = Producto.objects.create(

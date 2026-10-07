@@ -3,6 +3,7 @@
 from django.db import migrations, models
 
 
+# Incorpora una suspensión reversible separada de la visibilidad elegida por el autor.
 class Migration(migrations.Migration):
 
     dependencies = [

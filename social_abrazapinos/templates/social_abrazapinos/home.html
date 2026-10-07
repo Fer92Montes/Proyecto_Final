@@ -310,6 +310,8 @@
                 {% if user.is_authenticated %}
                     <span class="welcome">Hola, {{ user.username }}</span>
                     <a href="{% url 'profile' %}">Mi perfil</a>
+                    <!-- El historial personal solo se enlaza para una sesión autenticada. -->
+                    <a href="{% url 'mis_publicaciones' %}">Mis publicaciones</a>
                     {% if perms.social_abrazapinos.change_post or perms.social_abrazapinos.delete_post %}
                         <a href="{% url 'gestion_publicaciones' %}">Gestionar publicaciones</a>
                     {% endif %}
@@ -335,6 +337,8 @@
             {% if user.is_authenticated %}
                 <div class="actions">
                     <a href="{% url 'create_post' %}">Crear publicación</a>
+                    <!-- Atajo desde la portada al historial de autor, sin exponerlo a otros usuarios. -->
+                    <a href="{% url 'mis_publicaciones' %}">Mis publicaciones</a>
                     <a href="/shop/">Ir a la tienda</a>
                 </div>
             {% else %}
@@ -369,6 +373,10 @@
                             <a class="author-link" href="{% url 'user_profile' post.author.username %}">{{ post.author.username }}</a>
                             · {{ post.created_at|date:"d/m/Y H:i" }}
                         </p>
+                        <!-- El archivo se presenta solo si existe; la política de acceso ya filtró el post. -->
+                        {% if post.image %}
+                            <img src="{{ post.image.url }}" alt="Imagen de {{ post.title }}" style="display:block;width:100%;max-height:280px;object-fit:cover;border-radius:12px;margin:12px 0;">
+                        {% endif %}
                         <p>{{ post.content|truncatewords:18 }}</p>
                         <div class="actions">
                             <a href="{% url 'detalle_publicacion' post.pk %}">Ver publicación</a>

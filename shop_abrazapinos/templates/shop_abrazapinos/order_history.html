@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Mi historial de compras | Abrazapinos</title>
+    <style>
+        body { margin: 0; background: #f4efe9; color: #2c1d12; font: 16px Arial, sans-serif; }
+        main { max-width: 900px; margin: 36px auto; padding: 0 18px; }
+        header, article { background: white; border: 1px solid #e5d7ca; border-radius: 14px; padding: 20px; margin-bottom: 16px; }
+        header, .order-heading, .actions { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+        .order-heading h2 { margin: 0; }
+        .muted { color: #6f5849; }
+        .items { margin: 14px 0; padding-left: 22px; }
+        .items li { padding: 4px 0; }
+        a { display: inline-block; border-radius: 8px; padding: 10px 14px; background: #6b3f28; color: white; font-weight: bold; text-decoration: none; }
+    </style>
+</head>
+<body>
+    <main>
+        <!-- La vista filtra todos los estados por el usuario autenticado y no acepta un propietario desde la URL. -->
+        <header>
+            <div>
+                <h1>Mi historial de compras</h1>
+                <p class="muted">Todos tus pedidos, incluidos los pendientes y cancelados.</p>
+            </div>
+            <div class="actions">
+                <a href="{% url 'profile' %}">Volver al perfil</a>
+                <a href="{% url 'shop_home' %}">Seguir comprando</a>
+            </div>
+        </header>
+        <!-- Cada tarjeta resume un pedido y enlaza su identificador a la vista privada de detalle. -->
+        {% for pedido in pedidos %}
+            <article>
+                <div class="order-heading">
+                    <h2>Pedido #{{ pedido.pk }}</h2>
+                    <strong>{{ pedido.get_estado_display }}</strong>
+                </div>
+                <p class="muted">{{ pedido.creado_en|date:"d/m/Y H:i" }} · Total: {{ pedido.total|stringformat:".2f" }} €</p>
+                <!-- Las líneas conservan nombre, precio y talla históricos aunque el catálogo haya cambiado. -->
+                {% if pedido.lineas.all %}
+                    <ul class="items">
+                        {% for linea in pedido.lineas.all %}
+                            <li>
+                                {{ linea.nombre_producto }}{% if linea.talla %} — Talla {{ linea.talla }}{% endif %}
+                                · {{ linea.cantidad }} × {{ linea.precio_unitario|stringformat:".2f" }} €
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p class="muted">Este pedido todavía no contiene productos.</p>
+                {% endif %}
+                <a href="{% url 'detalle_pedido' pedido.pk %}">Ver pedido completo</a>
+            </article>
+        {% empty %}
+            <article>
+                <h2>Aún no tienes pedidos</h2>
+                <p>Cuando realices una compra, aparecerá aquí junto con su estado y sus detalles.</p>
+                <a href="{% url 'shop_home' %}">Explorar la tienda</a>
+            </article>
+        {% endfor %}
+    </main>
+</body>
+</html>

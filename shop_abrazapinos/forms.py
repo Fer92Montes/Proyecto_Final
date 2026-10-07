@@ -6,7 +6,11 @@ from .models import Pedido, Producto
 
 
 class FormularioProducto(forms.ModelForm):
-    """Formulario de catálogo para crear y actualizar productos desde la tienda."""
+    """Formulario de alta/edición del catálogo usado por la gestión web.
+
+    Incluye los datos comerciales, carga de imagen y el interruptor que activa
+    el selector S-XXL; Django valida el archivo y los tipos antes de persistirlo.
+    """
 
     class Meta:
         model = Producto

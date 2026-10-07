@@ -7,6 +7,7 @@
     <div class="cart-popover">
         {% if cart_items %}
             <div class="cart-popover-items">
+                {# Las variantes de talla conservan filas separadas en el resumen desplegable. #}
                 {% for item in cart_items %}
                     {# Cada fila ofrece subtotal, eliminación directa y ajuste independiente de unidades. #}
                     <div class="cart-popover-row">

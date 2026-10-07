@@ -19,6 +19,7 @@
 </head>
 <body>
     <main>
+        <!-- La vista restringe el listado al personal con permiso de moderación o borrado. -->
         <header>
             <div><h1>Moderar publicaciones</h1><p class="muted">Oculta temporalmente contenido o elimínalo de forma permanente.</p></div>
             <a href="{% url 'social_home' %}">Volver a Social</a>
@@ -26,6 +27,7 @@
         {% if messages %}
             <div class="messages" role="status">{% for message in messages %}<p>{{ message }}</p>{% endfor %}</div>
         {% endif %}
+        <!-- Se muestran también los posts ya ocultos para permitir restaurarlos o eliminarlos. -->
         {% for post in posts %}
             <article>
                 <div class="post-heading">
@@ -37,8 +39,9 @@
                 </div>
                 <p>{{ post.content|truncatewords:60 }}</p>
                 <div class="actions">
-                    <a href="{% url 'detalle_publicacion' post.pk %}">Ver publicación</a>
+                    {% if not post.is_hidden %}<a href="{% url 'detalle_publicacion' post.pk %}">Ver publicación</a>{% endif %}
                     {% if can_moderate_posts %}
+                        <!-- Cada cambio de visibilidad es POST y el endpoint vuelve a comprobar el permiso Django. -->
                         <form method="post" action="{% url 'moderar_publicacion' post.pk %}">
                             {% csrf_token %}
                             {% if post.is_hidden %}
@@ -51,6 +54,7 @@
                         </form>
                     {% endif %}
                     {% if can_delete_posts %}
+                        <!-- El borrado definitivo solo se ofrece a cuentas con permiso delete_post. -->
                         <form method="post" action="{% url 'eliminar_publicacion_admin' post.pk %}" onsubmit="return confirm('¿Eliminar esta publicación definitivamente?');">
                             {% csrf_token %}
                             <button class="danger" type="submit">Eliminar definitivamente</button>

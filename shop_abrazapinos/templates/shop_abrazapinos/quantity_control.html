@@ -3,6 +3,7 @@
     {% csrf_token %}
     <!-- `next` devuelve al usuario a la misma ficha o catálogo tras añadir el artículo. -->
     <input type="hidden" name="next" value="{{ request.get_full_path }}">
+    <!-- El administrador activa este selector en el producto; si es obligatorio, el navegador exige una opción. -->
     {% if product.requires_size %}
         <label class="size-selector">Talla
             <select name="size" required aria-label="Selecciona una talla para {{ product.name }}">
@@ -21,6 +22,7 @@
         <input type="number" name="quantity" value="1" min="1" max="{{ product.stock }}" aria-label="Cantidad" required {% if product.stock == 0 %}disabled{% endif %}>
         <button type="button" class="quantity-step" data-step="1" aria-label="Aumentar cantidad" {% if product.stock == 0 %}disabled{% endif %}>+</button>
     </div>
+    <!-- El servidor vuelve a validar talla y stock, porque la validación del navegador no es de confianza. -->
     <!-- Sin existencias se bloquean tanto la edición como el envío del formulario. -->
     <button class="add-to-cart" type="submit" {% if product.stock == 0 %}disabled{% endif %}>
         {% if product.stock == 0 %}Sin existencias{% else %}Añadir al carrito{% endif %}

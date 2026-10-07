@@ -8,6 +8,7 @@ from . import views
 # Los nombres permiten construir enlaces desde plantillas sin fijar rutas manualmente.
 urlpatterns = [
     path('', views.inicio, name='shop_home'),
+    # Gestión del catálogo en la web; cada operación exige su permiso add/change/delete.
     path('gestion/', views.VistaGestionProductos.as_view(), name='gestion_productos'),
     path('gestion/productos/nuevo/', views.crear_producto, name='crear_producto'),
     path('gestion/productos/<int:pk>/editar/', views.editar_producto, name='editar_producto'),
@@ -25,5 +26,8 @@ urlpatterns = [
     # La firma del webhook se valida dentro de la vista usando el cuerpo HTTP original.
     path('stripe/webhook/', views.stripe_webhook, name='stripe_webhook'),
     path('pedido/<int:pk>/confirmado/', views.pedido_confirmado, name='pedido_confirmado'),
+    # Historial privado y detalle comprobado contra el propietario de cada pedido.
+    path('pedidos/', views.historial_compras, name='historial_compras'),
+    path('pedido/<int:pk>/', views.detalle_pedido, name='detalle_pedido'),
     path('productos/<int:pk>/', views.VistaDetalleProducto.as_view(), name='detalle_producto'),
 ]

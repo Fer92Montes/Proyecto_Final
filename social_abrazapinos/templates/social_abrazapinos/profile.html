@@ -201,6 +201,8 @@
             <div class="actions">
                 <a href="{% url 'social_home' %}" class="secondary">Volver a la social</a>
                 <a href="{% url 'edit_profile' %}">Editar perfil</a>
+                <a href="{% url 'mis_publicaciones' %}">Mis publicaciones</a>
+                <a href="{% url 'shop_home' %}">Tienda</a>
                 <button class="theme-toggle" id="themeToggle" type="button" aria-label="Cambiar a modo oscuro">🌙</button>
             </div>
         </div>
@@ -262,43 +264,16 @@
 
         <div class="card section-block">
             <h3>Mis publicaciones</h3>
-            {% if posts %}
-                <!-- Se listan las publicaciones del usuario actual para que pueda abrir el detalle de cada una. -->
-                {% for post in posts %}
-                    <div style="border-top:1px solid var(--line); padding-top:12px; margin-top:12px;">
-                        <strong>{{ post.title }}</strong>
-                        <p>{{ post.content }}</p>
-                        <small>{{ post.get_visibility_display }} · {{ post.created_at|date:"d/m/Y H:i" }}</small>
-                        <div style="margin-top:12px;">
-                            <a href="{% url 'detalle_publicacion' post.pk %}" style="display:inline-block; text-decoration:none; background: var(--primary); color: white; border-radius: 10px; padding: 8px 12px; font-weight: bold;">Entrar a la publicación</a>
-                        </div>
-                    </div>
-                {% endfor %}
-            {% else %}
-                <p>Aún no has publicado nada.</p>
-            {% endif %}
+            <p>Consulta todas tus publicaciones, incluidas las ocultas por moderación, desde tu historial.</p>
+            <!-- La página de historial se encarga de filtrar por usuario autenticado y habilitar acciones de autor. -->
+            <a href="{% url 'mis_publicaciones' %}">Ver mis publicaciones</a>
         </div>
 
         <div class="card section-block">
             <h3>Historial de compras</h3>
-            {% if purchase_orders %}
-                {% for order in purchase_orders %}
-                    <div style="border-top:1px solid var(--line); padding-top:12px; margin-top:12px;">
-                        <strong>Pedido #{{ order.pk }}</strong>
-                        <p>{{ order.get_estado_display }} · {{ order.creado_en|date:"d/m/Y H:i" }} · Total: {{ order.total|stringformat:".2f" }} €</p>
-                        <ul>
-                            {% for line in order.lineas.all %}
-                                <li>
-                                    {{ line.nombre_producto }}{% if line.talla %} — Talla {{ line.talla }}{% endif %}
-                                    · {{ line.cantidad }} × {{ line.precio_unitario|stringformat:".2f" }} €
-                                </li>
-                            {% endfor %}
-                        </ul>
-                    </div>
-                {% endfor %}
-            {% else %}
-                <p>Aún no tienes compras completadas.</p>
-            {% endif %}
+            <p>Consulta todos tus pedidos y abre cada uno para ver sus detalles.</p>
+            <!-- El historial completo vive en la aplicación de tienda; cada pedido se valida contra su propietario. -->
+            <a href="{% url 'historial_compras' %}">Ver mi historial de compras</a>
         </div>
 
         <p style="margin-top: 22px;"><a href="{% url 'logout' %}" class="logout-link">Cerrar sesión</a></p>

@@ -68,19 +68,24 @@ class VistaInicioSocial(TemplateView):
 
 
 class VistaGestionPublicaciones(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
-    """Muestra todas las publicaciones y las herramientas de moderación."""
+    """Muestra la cola completa de moderación solo a personal autorizado.
+
+    `test_func` permite entrar a quien tenga permiso de cambio o borrado y el
+    contexto oculta cada acción si la cuenta no posee el permiso específico.
+    """
 
     template_name = 'social_abrazapinos/post_management.html'
     login_url = 'login'
 
     def test_func(self):
-        """Permite entrar si la cuenta puede moderar o eliminar publicaciones."""
+        """Autoriza acceso si el usuario puede ocultar/restaurar o eliminar posts."""
         return (
             self.request.user.has_perm('social_abrazapinos.change_post')
             or self.request.user.has_perm('social_abrazapinos.delete_post')
         )
 
     def get_context_data(self, **kwargs):
+        """Entrega autores y permisos individuales para pintar solo acciones permitidas."""
         contexto = super().get_context_data(**kwargs)
         contexto.update({
             'posts': Post.objects.select_related('author').all(),
@@ -98,7 +103,11 @@ class VistaGestionPublicaciones(LoginRequiredMixin, UserPassesTestMixin, Templat
 @permission_required('social_abrazapinos.change_post', raise_exception=True)
 @require_POST
 def moderar_publicacion(request, pk):
-    """Oculta o restaura una publicación desde las herramientas sociales."""
+    """Oculta o restaura un post con una petición POST protegida por permiso.
+
+    La bandera reversible se guarda directamente y la lógica de visibilidad
+    impide que el post suspendido aparezca en feeds, perfiles o detalles públicos.
+    """
     publicacion = get_object_or_404(Post, pk=pk)
     accion = request.POST.get('action')
     if accion == 'hide':
@@ -119,7 +128,11 @@ def moderar_publicacion(request, pk):
 @permission_required('social_abrazapinos.delete_post', raise_exception=True)
 @require_POST
 def eliminar_publicacion_admin(request, pk):
-    """Elimina una publicación desde la pantalla de moderación."""
+    """Elimina permanentemente un post desde la pantalla de moderación.
+
+    El acceso exige el permiso de borrado, y el signal del modelo limpia su
+    imagen asociada para no dejar archivos huérfanos.
+    """
     publicacion = get_object_or_404(Post, pk=pk)
     publicacion.delete()
     messages.success(request, 'La publicación se ha eliminado.')
@@ -135,11 +148,22 @@ class VistaPerfilUsuario(MixinRequiereAutenticacion, MixinContextoPerfil, Templa
         """Crea el contexto del perfil personal con amigos y publicaciones."""
         contexto = super().get_context_data(**kwargs)
         contexto.update(self.obtener_contexto_perfil(self.request.user, self.request.user))
-        contexto['purchase_orders'] = (
-            self.request.user.pedidos_tienda
-            .filter(estado__in=('pagado', 'pendiente', 'preparando', 'enviado', 'completado'))
-            .prefetch_related('lineas')
-        )
+        return contexto
+
+
+class VistaMisPublicaciones(MixinRequiereAutenticacion, TemplateView):
+    """Muestra al autor su historial completo, también posts privados u ocultos.
+
+    El queryset siempre se filtra por el usuario de sesión; no acepta un autor
+    recibido por URL y así nunca expone publicaciones ajenas.
+    """
+
+    template_name = 'social_abrazapinos/my_posts.html'
+
+    def get_context_data(self, **kwargs):
+        """Carga las publicaciones propias en orden cronológico descendente."""
+        contexto = super().get_context_data(**kwargs)
+        contexto['posts'] = Post.objects.filter(author=self.request.user).order_by('-created_at')
         return contexto
 
 
@@ -186,7 +210,7 @@ class VistaEditarPerfil(MixinRequiereAutenticacion, View):
 
 
 class VistaCrearPublicacion(MixinRequiereAutenticacion, View):
-    """Crea nuevas publicaciones con visibilidad configurable."""
+    """Permite publicar texto y una imagen opcional con visibilidad configurable."""
 
     template_name = 'social_abrazapinos/post_form.html'
 
@@ -195,8 +219,8 @@ class VistaCrearPublicacion(MixinRequiereAutenticacion, View):
         return render(request, self.template_name, {'form': FormularioPublicacion()})
 
     def post(self, request, *args, **kwargs):
-        """Guarda la publicación del usuario autenticado."""
-        formulario = FormularioPublicacion(request.POST)
+        """Valida campos y archivo multipart y asigna el autor desde la sesión."""
+        formulario = FormularioPublicacion(request.POST, request.FILES)
         if formulario.is_valid():
             publicacion = formulario.save(commit=False)
             publicacion.author = request.user
@@ -207,7 +231,7 @@ class VistaCrearPublicacion(MixinRequiereAutenticacion, View):
 
 
 class VistaDetallePublicacion(View):
-    """Muestra el contenido completo de una publicación con sus datos del autor."""
+    """Muestra texto e imagen solo si la política de visibilidad lo permite."""
 
     template_name = 'social_abrazapinos/post_detail.html'
 
@@ -224,7 +248,7 @@ class VistaDetallePublicacion(View):
 
 
 class VistaEditarPublicacion(MixinRequiereAutenticacion, View):
-    """Permite editar una publicación siempre que el usuario sea su autor."""
+    """Permite al autor actualizar texto, imagen y visibilidad de su publicación."""
 
     template_name = 'social_abrazapinos/post_form.html'
 
@@ -236,12 +260,12 @@ class VistaEditarPublicacion(MixinRequiereAutenticacion, View):
         return render(request, self.template_name, {'form': FormularioPublicacion(instance=publicacion)})
 
     def post(self, request, pk, *args, **kwargs):
-        """Actualiza la publicación si el autor envía datos válidos."""
+        """Guarda los campos y/o imagen nuevos sin permitir editar posts ajenos."""
         publicacion = get_object_or_404(Post, pk=pk)
         if publicacion.author != request.user:
             raise Http404('No tienes permisos para editar esta publicación.')
 
-        formulario = FormularioPublicacion(request.POST, instance=publicacion)
+        formulario = FormularioPublicacion(request.POST, request.FILES, instance=publicacion)
         if formulario.is_valid():
             formulario.save()
             messages.success(request, 'Publicación actualizada correctamente.')

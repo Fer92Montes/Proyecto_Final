@@ -4,3 +4,6 @@ Añadir sistema de likes dentro de la aplicación y barra de notificacioones al 
 Comprobar que los productos tienen un "stock", y si llega a cero, que no se pueda comprar, que apareca como agotado
 Añadir la funcionalidad de instagram, que se puedan subir publicaciones de la parte social a una cuenta en concreto
 Mejorar la claridad de botones y demas en general en la aplicacion
+Mejorar el historial de compras
+Mejorar los boton mis publicaciones y mi historial de compra
+en la gestion de productos y publicaciones del admin, añadir bbarras de busqueda y filtros

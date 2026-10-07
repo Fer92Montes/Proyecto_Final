@@ -1,8 +1,13 @@
 """Pruebas del comportamiento social principal de la aplicación."""
 
+from io import BytesIO
+import tempfile
+
 from django.contrib.auth.models import User
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 from django.urls import reverse
+from PIL import Image
 
 from shop_abrazapinos.models import LineaPedido, Pedido, Producto
 
@@ -32,6 +37,16 @@ class PruebasAppSocial(TestCase):
         response = self.client.get(reverse('social_home'))
         self.assertContains(response, 'Saltar al contenido')
         self.assertContains(response, 'id="main-content" tabindex="-1"')
+
+    def test_home_social_enlaza_mis_publicaciones_solo_con_sesion(self):
+        """El inicio social da acceso al historial propio sin exponer el enlace."""
+        response_anonima = self.client.get(reverse('social_home'))
+        self.assertNotContains(response_anonima, reverse('mis_publicaciones'))
+
+        self.client.force_login(self.user)
+        response_autenticada = self.client.get(reverse('social_home'))
+        self.assertContains(response_autenticada, reverse('mis_publicaciones'))
+        self.assertContains(response_autenticada, 'Mis publicaciones')
 
     def test_busqueda_feed_filtra_solo_publicaciones_visibles(self):
         """Busca texto del feed sin saltarse las reglas de visibilidad del servicio."""
@@ -152,8 +167,8 @@ class PruebasAppSocial(TestCase):
         response = self.client.get(reverse('profile'))
         self.assertEqual(response.status_code, 200)
 
-    def test_perfil_muestra_solo_historial_de_compras_confirmadas_del_usuario(self):
-        """El perfil incluye artículos comprados con talla y excluye otros pedidos."""
+    def test_perfil_muestra_historial_completo_solo_del_usuario(self):
+        """El perfil enlaza pedidos de todos los estados, pero no pedidos ajenos."""
         producto = Producto.objects.create(
             name='Camiseta del club',
             description='Camiseta técnica.',
@@ -224,11 +239,141 @@ class PruebasAppSocial(TestCase):
         response = self.client.get(reverse('profile'))
 
         self.assertContains(response, 'Historial de compras')
-        self.assertContains(response, 'Camiseta del club')
-        self.assertContains(response, 'Talla M')
-        self.assertContains(response, 'Pedido #{}'.format(pedido_pagado.pk))
-        self.assertNotContains(response, 'Pedido #{}'.format(pedido_pendiente.pk))
-        self.assertNotContains(response, 'Compra de otra persona')
+        self.assertContains(response, reverse('historial_compras'))
+        self.assertNotContains(response, 'Pedido #{}'.format(pedido_pagado.pk))
+
+    def test_detalle_pedido_completo_es_privado_para_el_propietario(self):
+        """El detalle muestra líneas y entrega, y bloquea a usuarios ajenos."""
+        producto = Producto.objects.create(
+            name='Maillot',
+            description='Maillot del club.',
+            price='30.00',
+            stock=0,
+            requires_size=True,
+        )
+        pedido = Pedido.objects.create(
+            usuario=self.user,
+            destinatario='Ana Ejemplo',
+            direccion='Calle de la Sierra 12',
+            ciudad='Baza',
+            provincia='Granada',
+            codigo_postal='18800',
+            pais='España',
+            telefono='600123123',
+            metodo_pago='stripe',
+            total='60.00',
+            estado='cancelado',
+        )
+        LineaPedido.objects.create(
+            pedido=pedido,
+            producto=producto,
+            nombre_producto='Maillot',
+            precio_unitario='30.00',
+            cantidad=2,
+            talla='XL',
+        )
+
+        self.client.force_login(self.user)
+        respuesta = self.client.get(reverse('detalle_pedido', args=[pedido.pk]))
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertContains(respuesta, 'Pedido #{}'.format(pedido.pk))
+        self.assertContains(respuesta, 'Talla: XL')
+        self.assertContains(respuesta, 'Calle de la Sierra 12')
+        self.assertContains(respuesta, '60.00')
+
+        self.client.force_login(self.friend)
+        self.assertEqual(
+            self.client.get(reverse('detalle_pedido', args=[pedido.pk])).status_code,
+            404,
+        )
+
+    def test_mis_publicaciones_muestra_historial_propio_incluidas_ocultas(self):
+        """La página privada lista posts propios, incluso los ocultos, y nada ajeno."""
+        Post.objects.create(
+            author=self.user,
+            title='Mi publicación visible',
+            content='Contenido propio',
+            visibility='public',
+        )
+        Post.objects.create(
+            author=self.user,
+            title='Mi publicación oculta',
+            content='Contenido propio moderado',
+            visibility='public',
+            is_hidden=True,
+        )
+        Post.objects.create(
+            author=self.friend,
+            title='Publicación de otra persona',
+            content='No debe aparecer',
+            visibility='public',
+        )
+        self.client.force_login(self.user)
+
+        respuesta = self.client.get(reverse('mis_publicaciones'))
+
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertContains(respuesta, 'Mi publicación visible')
+        self.assertContains(respuesta, 'Mi publicación oculta')
+        self.assertContains(respuesta, 'Oculta por moderación')
+        self.assertNotContains(respuesta, 'Publicación de otra persona')
+        self.assertContains(self.client.get(reverse('profile')), 'Ver mis publicaciones')
+
+    def test_publicacion_admite_subir_y_reemplazar_imagen(self):
+        """Crear y editar aceptan imagen y eliminan el archivo reemplazado."""
+        def imagen_png(nombre, color):
+            buffer = BytesIO()
+            Image.new('RGB', (2, 2), color=color).save(buffer, format='PNG')
+            return SimpleUploadedFile(nombre, buffer.getvalue(), content_type='image/png')
+
+        self.client.force_login(self.user)
+        with tempfile.TemporaryDirectory() as media_root, self.settings(MEDIA_ROOT=media_root):
+            respuesta_crear = self.client.post(
+                reverse('create_post'),
+                {
+                    'title': 'Ruta con fotografía',
+                    'content': 'Una imagen de la ruta.',
+                    'visibility': 'public',
+                    'image': imagen_png('ruta.png', 'red'),
+                },
+            )
+            self.assertEqual(respuesta_crear.status_code, 302)
+            publicacion = Post.objects.get(title='Ruta con fotografía')
+            imagen_anterior = publicacion.image.name
+            self.assertTrue(publicacion.image.storage.exists(imagen_anterior))
+
+            respuesta_formulario = self.client.get(
+                reverse('editar_publicacion', args=[publicacion.pk]),
+            )
+            self.assertContains(respuesta_formulario, publicacion.image.url)
+            respuesta_editar = self.client.post(
+                reverse('editar_publicacion', args=[publicacion.pk]),
+                {
+                    'title': publicacion.title,
+                    'content': 'Descripción actualizada.',
+                    'visibility': 'friends',
+                    'image': imagen_png('ruta-nueva.png', 'blue'),
+                },
+            )
+            self.assertEqual(respuesta_editar.status_code, 302)
+            publicacion.refresh_from_db()
+            self.assertNotEqual(publicacion.image.name, imagen_anterior)
+            self.assertFalse(publicacion.image.storage.exists(imagen_anterior))
+            self.assertTrue(publicacion.image.storage.exists(publicacion.image.name))
+
+            self.client.force_login(self.friend)
+            self.assertEqual(
+                self.client.get(reverse('detalle_publicacion', args=[publicacion.pk])).status_code,
+                404,
+            )
+            self.client.force_login(self.user)
+            self.assertContains(
+                self.client.get(reverse('detalle_publicacion', args=[publicacion.pk])),
+                publicacion.image.url,
+            )
+            nombre_imagen_final = publicacion.image.name
+            publicacion.delete()
+            self.assertFalse(publicacion.image.storage.exists(nombre_imagen_final))
 
     def test_login_y_registro_sin_destino_vuelven_al_feed_social(self):
         """Comprueba que el feed es el destino predeterminado tras autenticarse."""
@@ -294,8 +439,8 @@ class PruebasAppSocial(TestCase):
         self.assertContains(response, 'Bicicleta de prueba')
         self.assertContains(response, '499.99')
 
-    def test_profile_posts_include_detail_link(self):
-        """Verifica que las publicaciones del perfil tienen acceso a su detalle."""
+    def test_mis_publicaciones_include_detail_link(self):
+        """El perfil enlaza al historial de posts y este a cada detalle."""
         publicacion = Post.objects.create(
             author=self.user,
             title='Publicación del perfil',
@@ -305,7 +450,12 @@ class PruebasAppSocial(TestCase):
 
         self.client.login(username='ana', password='Test1234')
         response = self.client.get(reverse('profile'))
-        self.assertContains(response, reverse('detalle_publicacion', args=[publicacion.pk]))
+        self.assertContains(response, reverse('mis_publicaciones'))
+        respuesta_posts = self.client.get(reverse('mis_publicaciones'))
+        self.assertContains(
+            respuesta_posts,
+            reverse('detalle_publicacion', args=[publicacion.pk]),
+        )
 
     def test_author_can_edit_post_from_detail_view(self):
         """Comprueba que el autor puede editar su publicación desde la vista detallada."""

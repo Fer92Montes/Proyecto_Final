@@ -24,4 +24,5 @@ urlpatterns = [
 ]
 
 if settings.DEBUG:
+    # En desarrollo, Django sirve las imágenes subidas; producción debe usar un storage/servidor de medios.
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

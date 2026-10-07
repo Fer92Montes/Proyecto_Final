@@ -19,6 +19,7 @@
 </head>
 <body>
     <main>
+        <!-- Los permisos de alta, cambio y borrado se pasan por separado para ocultar acciones no autorizadas. -->
         <header>
             <div><h1>Gestionar productos</h1><p class="muted">Administra precios, existencias, descripciones e imágenes.</p></div>
             <div class="actions">
@@ -29,6 +30,7 @@
         {% if messages %}
             <div class="messages" role="status">{% for message in messages %}<p>{{ message }}</p>{% endfor %}</div>
         {% endif %}
+        <!-- El catálogo de gestión muestra stock y requisito de talla para facilitar el mantenimiento. -->
         {% for product in products %}
             <article class="product-row">
                 {% if product.image %}<img src="{{ product.image.url }}" alt="">{% endif %}
@@ -40,6 +42,7 @@
                     <a href="{% url 'detalle_producto' product.pk %}">Ver producto</a>
                     {% if can_change_product %}<a href="{% url 'editar_producto' product.pk %}">Editar</a>{% endif %}
                     {% if can_delete_product %}
+                        <!-- El endpoint elimina por POST y conserva productos protegidos por pedidos existentes. -->
                         <form method="post" action="{% url 'eliminar_producto' product.pk %}" onsubmit="return confirm('¿Eliminar este producto definitivamente?');">
                             {% csrf_token %}
                             <button class="danger" type="submit">Eliminar</button>

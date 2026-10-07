@@ -45,14 +45,19 @@ class FormularioPerfil(forms.ModelForm):
 
 
 class FormularioPublicacion(forms.ModelForm):
-    """Formulario para crear publicaciones con control de visibilidad."""
+    """Formulario compartido para crear y editar texto, imagen y visibilidad.
+
+    La imagen es opcional; las vistas enlazan `request.FILES` para que el
+    `ImageField` procese cargas multipart junto con el resto de los campos.
+    """
 
     class Meta:
         model = Post
-        fields = ['title', 'content', 'visibility']
+        fields = ['title', 'content', 'image', 'visibility']
         widgets = {
             'title': forms.TextInput(attrs={'placeholder': 'Título del post'}),
             'content': forms.Textarea(attrs={'rows': 5, 'placeholder': 'Escribe tu publicación...'}),
+            'image': forms.ClearableFileInput(attrs={'accept': 'image/*'}),
         }
 
 

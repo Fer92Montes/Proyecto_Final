@@ -165,6 +165,7 @@
         {% if cart_items %}
             <div class="cart-layout">
                 <section class="items" aria-label="Productos añadidos">
+                    <!-- Cada variante de talla ocupa una línea independiente, aunque comparta producto e inventario. -->
                     {% for item in cart_items %}
                         <article class="cart-row">
                             <div>

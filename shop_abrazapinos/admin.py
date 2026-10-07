@@ -7,7 +7,11 @@ from .models import LineaPedido, Pedido, Producto
 
 @admin.register(Producto)
 class AdminProducto(admin.ModelAdmin):
-    """Permite gestionar los productos desde el panel de administración."""
+    """Gestiona catálogo, imágenes y tallaje desde Django Admin.
+
+    Precio y stock son editables desde el listado; los demás campos se editan
+    en la ficha, y las líneas de pedido mantienen su copia histórica.
+    """
 
     list_display = ('name', 'price', 'stock', 'requires_size', 'created_at')
     search_fields = ('name', 'description')
@@ -21,7 +25,7 @@ ProductAdmin = AdminProducto
 
 # El inline permite consultar los productos de un pedido sin abandonar su ficha.
 class LineaPedidoInline(admin.TabularInline):
-    """Muestra las líneas de cada pedido en su ficha de administración."""
+    """Muestra productos, precio histórico, cantidad y talla en cada pedido."""
 
     model = LineaPedido
     extra = 0

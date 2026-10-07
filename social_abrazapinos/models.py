@@ -3,6 +3,9 @@
 from django.contrib.auth.models import User
 from django.db import models
 from django.db.models import Q
+from django.db.models.signals import post_delete, post_save, pre_save
+from django.dispatch import receiver
+from django.core.files.storage import default_storage
 
 
 class Profile(models.Model):
@@ -73,7 +76,11 @@ class Friendship(models.Model):
 
 
 class Post(models.Model):
-    """Representa una publicación del feed social."""
+    """Publicación social con imagen, visibilidad del autor y moderación administrativa.
+
+    `is_hidden` es una suspensión reversible que prevalece sobre la visibilidad
+    elegida por el autor; la imagen puede omitirse y se guarda bajo MEDIA_ROOT.
+    """
 
     VISIBILITY_CHOICES = [
         ('public', 'Todos los usuarios'),
@@ -84,7 +91,10 @@ class Post(models.Model):
     author = models.ForeignKey(User, on_delete=models.CASCADE, related_name='posts')
     title = models.CharField(max_length=200)
     content = models.TextField()
+    # Archivo opcional adjunto al post; los signals gestionan reemplazos y borrados.
+    image = models.ImageField(upload_to='publicaciones/', blank=True)
     visibility = models.CharField(max_length=20, choices=VISIBILITY_CHOICES, default='public')
+    # Moderación reversible: al activarse, prevalece sobre la visibilidad del autor.
     is_hidden = models.BooleanField(default=False, verbose_name='Oculta por moderación')
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -114,3 +124,34 @@ class Post(models.Model):
     def __str__(self):
         """Devuelve el título de la publicación como representación textual."""
         return self.title
+
+
+@receiver(pre_save, sender=Post)
+def recordar_imagen_anterior_publicacion(sender, instance, **kwargs):
+    """Recuerda el archivo previo durante el guardado para evitar huérfanos.
+
+    La consulta solo obtiene el nombre almacenado; el borrado se difiere a
+    `post_save` para no perder la imagen si falla la validación o el guardado.
+    """
+    if not instance.pk:
+        instance._imagen_anterior = ''
+        return
+    instance._imagen_anterior = (
+        Post.objects.filter(pk=instance.pk).values_list('image', flat=True).first() or ''
+    )
+
+
+@receiver(post_save, sender=Post)
+def limpiar_imagen_reemplazada_publicacion(sender, instance, **kwargs):
+    """Elimina del storage la imagen sustituida o quitada tras guardar el post."""
+    anterior = getattr(instance, '_imagen_anterior', '')
+    actual = instance.image.name if instance.image else ''
+    if anterior and anterior != actual:
+        default_storage.delete(anterior)
+
+
+@receiver(post_delete, sender=Post)
+def limpiar_imagen_eliminada_publicacion(sender, instance, **kwargs):
+    """Elimina del storage el archivo asociado al borrar definitivamente el post."""
+    if instance.image:
+        default_storage.delete(instance.image.name)

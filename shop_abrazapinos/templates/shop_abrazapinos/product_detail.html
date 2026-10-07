@@ -237,6 +237,7 @@
         {% endif %}
         <article class="card">
             <!-- El producto viene del contexto 'product' y se muestra con nombre, precio y descripción. -->
+            <!-- La foto es opcional y comparte el archivo cargado desde las herramientas de catálogo. -->
             {% if product.image %}
                 <img src="{{ product.image.url }}" alt="{{ product.name }}" style="display:block; width:100%; max-height:420px; object-fit:contain; border-radius:12px; margin-bottom:20px;">
             {% endif %}

@@ -3,6 +3,7 @@
 from django.db import migrations, models
 
 
+# Registra si el producto exige talla y conserva la variante elegida en cada pedido.
 class Migration(migrations.Migration):
 
     dependencies = [

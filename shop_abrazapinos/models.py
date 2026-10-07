@@ -5,8 +5,14 @@ from django.db import models
 
 
 class Producto(models.Model):
-    """Representa un producto disponible en la sección de compraventa."""
+    """Producto del catálogo, con imagen opcional y selección opcional de talla.
 
+    El inventario se mantiene como una cantidad global por producto, compartida
+    por las tallas disponibles; `requires_size` controla si la tienda debe pedir
+    una talla antes de añadirlo al carrito.
+    """
+
+    # La lista única alimenta el formulario de compra y la talla persistida en pedidos.
     TALLAS = [
         ('S', 'S'),
         ('M', 'M'),
@@ -19,7 +25,9 @@ class Producto(models.Model):
     description = models.TextField()
     price = models.DecimalField(max_digits=8, decimal_places=2)
     stock = models.PositiveIntegerField(default=0)
+    # Imagen que aparece en catálogo/ficha y se gestiona desde el formulario de producto.
     image = models.ImageField(upload_to='productos/', blank=True)
+    # Activa el selector obligatorio de talla durante la compra, no un stock por talla.
     requires_size = models.BooleanField(default=False, verbose_name='Requiere seleccionar talla')
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -84,13 +92,18 @@ class Pedido(models.Model):
 # Cada línea congela el nombre y precio aplicados para que cambios futuros del catálogo
 # no modifiquen el importe de un pedido ya registrado.
 class LineaPedido(models.Model):
-    """Conserva nombre, precio, talla y cantidad al confirmar la compra."""
+    """Copia los datos comerciales elegidos para preservar el historial del pedido.
+
+    El nombre, precio y talla quedan congelados al confirmar el checkout, aunque
+    el administrador edite después el producto del catálogo.
+    """
 
     pedido = models.ForeignKey(Pedido, on_delete=models.CASCADE, related_name='lineas')
     producto = models.ForeignKey(Producto, on_delete=models.PROTECT)
     nombre_producto = models.CharField(max_length=200)
     precio_unitario = models.DecimalField(max_digits=8, decimal_places=2)
     cantidad = models.PositiveIntegerField()
+    # Variante elegida al comprar; vacío conserva los pedidos de productos sin talla.
     talla = models.CharField(max_length=3, choices=Producto.TALLAS, blank=True, default='')
 
     @property

@@ -156,6 +156,7 @@
                         <h2>Resumen del pedido</h2>
                         {% for item in cart_items %}
                             <div class="summary-line">
+                                {# El checkout muestra la talla seleccionada y el servidor reconstruye las líneas al crear el pedido. #}
                                 <span>{{ item.product.name }}{% if item.size %} — Talla {{ item.size }}{% endif %} × {{ item.quantity }}</span>
                                 <strong>{{ item.subtotal|stringformat:".2f" }} €</strong>
                             </div>

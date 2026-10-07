@@ -277,6 +277,10 @@
                 <!-- Nombre del autor clicable para acceder directamente a su perfil desde la publicación. -->
                 Publicado por <a href="{% url 'user_profile' post.author.username %}" style="color: var(--primary); text-decoration: none; font-weight: bold;">{{ post.author.username }}</a> · {{ post.created_at|date:"d/m/Y H:i" }}
             </div>
+            <!-- La imagen pertenece al mismo post que ya autorizó la vista según su visibilidad y estado de moderación. -->
+            {% if post.image %}
+                <img src="{{ post.image.url }}" alt="Imagen de {{ post.title }}" style="display:block;max-width:100%;max-height:640px;object-fit:contain;margin:18px auto;border-radius:14px;">
+            {% endif %}
             <div class="content">{{ post.content }}</div>
             <div class="actions">
                 {% if user.is_authenticated and user == post.author %}

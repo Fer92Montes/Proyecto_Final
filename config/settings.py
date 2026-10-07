@@ -107,6 +107,7 @@ LOGOUT_REDIRECT_URL = '/social/'
 
 # Archivos estáticos (CSS, JavaScript, imágenes).
 STATIC_URL = 'static/'
+# MEDIA_ROOT contiene imágenes subidas por usuarios y administradores; MEDIA_URL es su ruta pública.
 MEDIA_URL = 'media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 

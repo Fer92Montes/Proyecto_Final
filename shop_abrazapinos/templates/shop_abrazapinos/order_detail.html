@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Pedido #{{ pedido.pk }} | Abrazapinos</title>
+    <style>
+        body { margin: 0; background: #f4efe9; color: #2c1d12; font: 16px Arial, sans-serif; }
+        main { max-width: 850px; margin: 36px auto; padding: 0 18px; }
+        section { background: white; border: 1px solid #e5d7ca; border-radius: 14px; padding: 22px; margin-bottom: 16px; }
+        h1, h2 { margin-top: 0; }
+        .line { display: flex; justify-content: space-between; gap: 16px; padding: 12px 0; border-bottom: 1px solid #e5d7ca; }
+        .muted { color: #6f5849; }
+        .total { text-align: right; font-size: 1.2rem; font-weight: bold; margin-top: 18px; }
+        a { display: inline-block; border-radius: 8px; padding: 10px 14px; background: #6b3f28; color: white; font-weight: bold; text-decoration: none; }
+        address { line-height: 1.6; font-style: normal; }
+    </style>
+</head>
+<body>
+    <main>
+        <!-- La vista devuelve 404 para pedidos ajenos; los datos personales no se cargan por ID sin comprobar propietario. -->
+        <section>
+            <a href="{% url 'profile' %}">Volver al perfil</a>
+            <h1>Pedido #{{ pedido.pk }}</h1>
+            <p><strong>Estado:</strong> {{ pedido.get_estado_display }}</p>
+            <p><strong>Fecha:</strong> {{ pedido.creado_en|date:"d/m/Y H:i" }}</p>
+            <p><strong>Método de pago:</strong> {{ pedido.get_metodo_pago_display }}</p>
+        </section>
+        <section>
+            <!-- Los subtotales proceden de la copia de nombre, precio y talla guardada al confirmar la compra. -->
+            <h2>Productos del pedido</h2>
+            {% for line in pedido.lineas.all %}
+                <div class="line">
+                    <div>
+                        <strong>{{ line.nombre_producto }}</strong>
+                        {% if line.talla %}<div class="muted">Talla: {{ line.talla }}</div>{% endif %}
+                        <div class="muted">{{ line.cantidad }} × {{ line.precio_unitario|stringformat:".2f" }} €</div>
+                    </div>
+                    <strong>{{ line.subtotal|stringformat:".2f" }} €</strong>
+                </div>
+            {% empty %}
+                <p>Este pedido no tiene líneas de producto.</p>
+            {% endfor %}
+            <p class="total">Total del pedido: {{ pedido.total|stringformat:".2f" }} €</p>
+        </section>
+        <section>
+            <!-- Dirección y contacto corresponden al destinatario guardado en esta orden concreta. -->
+            <h2>Datos de entrega</h2>
+            <address>
+                {{ pedido.destinatario }}<br>
+                {{ pedido.direccion }}<br>
+                {{ pedido.codigo_postal }} {{ pedido.ciudad }}<br>
+                {{ pedido.provincia }}, {{ pedido.pais }}<br>
+                {% if pedido.telefono %}Teléfono: {{ pedido.telefono }}{% endif %}
+            </address>
+        </section>
+    </main>
+</body>
+</html>

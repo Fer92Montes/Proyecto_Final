@@ -295,6 +295,8 @@
                 {% if user.is_authenticated %}
                     <span>Hola, {{ user.username }}</span>
                     <a href="{% url 'profile' %}">Mi perfil</a>
+                    <!-- El acceso lleva al listado separado de pedidos; cada registro abre su detalle completo. -->
+                    <a href="{% url 'historial_compras' %}">Mi historial de compras</a>
                     {% if perms.shop_abrazapinos.add_producto or perms.shop_abrazapinos.change_producto or perms.shop_abrazapinos.delete_producto %}
                         <a href="{% url 'gestion_productos' %}">Gestionar productos</a>
                     {% endif %}
@@ -319,6 +321,10 @@
             <h1>Sección de compraventa</h1>
             <p>Descubre productos, ofertas y artículos de la comunidad de Abrazapinos.</p>
             <a href="/social/">Volver a la social</a>
+            {% if user.is_authenticated %}
+                <!-- Acceso directo desde la portada del catálogo al historial privado del comprador. -->
+                <p><a href="{% url 'historial_compras' %}">Consultar mi historial de compras</a></p>
+            {% endif %}
             {% if perms.shop_abrazapinos.add_producto or perms.shop_abrazapinos.change_producto or perms.shop_abrazapinos.delete_producto %}
                 <p><a href="{% url 'gestion_productos' %}">Gestionar el catálogo de productos</a></p>
             {% endif %}
@@ -343,6 +349,7 @@
             <div class="cards">
                 {% for product in products %}
                     <article class="card">
+                        <!-- La foto del producto es opcional y procede del archivo guardado por el formulario de catálogo. -->
                         {% if product.image %}
                             <img src="{{ product.image.url }}" alt="{{ product.name }}" style="display:block; width:100%; max-height:240px; object-fit:cover; border-radius:12px; margin-bottom:14px;">
                         {% endif %}

@@ -8,11 +8,14 @@ from . import views
 # procesarla. Los nombres de ruta se usan luego en templates y redirecciones.
 urlpatterns = [
     path('', views.VistaInicioSocial.as_view(), name='social_home'),
+    # Panel web privado de moderación; endpoints POST verifican permisos de cambio/borrado.
     path('gestion/publicaciones/', views.VistaGestionPublicaciones.as_view(), name='gestion_publicaciones'),
     path('gestion/publicaciones/<int:pk>/moderar/', views.moderar_publicacion, name='moderar_publicacion'),
     path('gestion/publicaciones/<int:pk>/eliminar/', views.eliminar_publicacion_admin, name='eliminar_publicacion_admin'),
     path('profile/', views.VistaPerfilUsuario.as_view(), name='profile'),
     path('profile/edit/', views.VistaEditarPerfil.as_view(), name='edit_profile'),
+    # Historial privado de posts propios, incluidas publicaciones ocultas por moderación.
+    path('profile/posts/', views.VistaMisPublicaciones.as_view(), name='mis_publicaciones'),
     path('profile/<str:username>/add_friend/', views.VistaAgregarAmigo.as_view(), name='add_friend'),
     path('profile/<str:username>/', views.VistaPerfilAjeno.as_view(), name='user_profile'),
     path('posts/new/', views.VistaCrearPublicacion.as_view(), name='create_post'),
