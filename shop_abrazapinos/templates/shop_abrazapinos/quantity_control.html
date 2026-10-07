@@ -3,6 +3,18 @@
     {% csrf_token %}
     <!-- `next` devuelve al usuario a la misma ficha o catálogo tras añadir el artículo. -->
     <input type="hidden" name="next" value="{{ request.get_full_path }}">
+    {% if product.requires_size %}
+        <label class="size-selector">Talla
+            <select name="size" required aria-label="Selecciona una talla para {{ product.name }}">
+                <option value="">Selecciona una talla</option>
+                <option value="S">S</option>
+                <option value="M">M</option>
+                <option value="L">L</option>
+                <option value="XL">XL</option>
+                <option value="XXL">XXL</option>
+            </select>
+        </label>
+    {% endif %}
     <!-- Los botones de paso ajustan el input numérico; min/max reflejan unidades disponibles. -->
     <div class="quantity-control" aria-label="Cantidad de {{ product.name }}">
         <button type="button" class="quantity-step" data-step="-1" aria-label="Reducir cantidad">−</button>

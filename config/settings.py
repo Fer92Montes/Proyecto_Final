@@ -107,6 +107,8 @@ LOGOUT_REDIRECT_URL = '/social/'
 
 # Archivos estáticos (CSS, JavaScript, imágenes).
 STATIC_URL = 'static/'
+MEDIA_URL = 'media/'
+MEDIA_ROOT = BASE_DIR / 'media'
 
 # Stripe Checkout lee secretos del entorno; nunca se guardan credenciales en el repositorio.
 STRIPE_SECRET_KEY = os.environ.get('STRIPE_SECRET_KEY', '')

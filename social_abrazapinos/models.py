@@ -85,6 +85,7 @@ class Post(models.Model):
     title = models.CharField(max_length=200)
     content = models.TextField()
     visibility = models.CharField(max_length=20, choices=VISIBILITY_CHOICES, default='public')
+    is_hidden = models.BooleanField(default=False, verbose_name='Oculta por moderación')
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -94,6 +95,8 @@ class Post(models.Model):
 
     def is_visible_to(self, viewer):
         """Determina si un usuario puede ver la publicación."""
+        if self.is_hidden:
+            return False
         # El autor siempre puede ver su propia publicación, aunque sea privada.
         if self.author == viewer:
             return True

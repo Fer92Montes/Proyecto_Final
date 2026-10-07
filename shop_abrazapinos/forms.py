@@ -2,7 +2,29 @@
 
 from django import forms
 
-from .models import Pedido
+from .models import Pedido, Producto
+
+
+class FormularioProducto(forms.ModelForm):
+    """Formulario de catálogo para crear y actualizar productos desde la tienda."""
+
+    class Meta:
+        model = Producto
+        fields = ('name', 'description', 'price', 'stock', 'image', 'requires_size')
+        labels = {
+            'name': 'Nombre del producto',
+            'description': 'Descripción',
+            'price': 'Precio (€)',
+            'stock': 'Cantidad disponible',
+            'image': 'Imagen del producto',
+            'requires_size': 'Requiere seleccionar talla',
+        }
+        widgets = {
+            'description': forms.Textarea(attrs={'rows': 5}),
+            'price': forms.NumberInput(attrs={'min': '0.01', 'step': '0.01'}),
+            'stock': forms.NumberInput(attrs={'min': '0', 'step': '1'}),
+            'image': forms.ClearableFileInput(attrs={'accept': 'image/*'}),
+        }
 
 
 class FormularioTramitarPedido(forms.Form):

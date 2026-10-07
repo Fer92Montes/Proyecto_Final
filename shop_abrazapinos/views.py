@@ -7,6 +7,10 @@ from decimal import Decimal
 import stripe
 from django.contrib import messages
 from django.conf import settings
+from django.contrib.auth.decorators import login_required, permission_required
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.core.files.storage import default_storage
+from django.db.models import ProtectedError
 from django.http import HttpResponse
 from django.db import transaction
 from django.core.paginator import Paginator
@@ -19,10 +23,103 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_POST
 from django.views.generic import TemplateView
 
-from .forms import FormularioTramitarPedido
+from .forms import FormularioProducto, FormularioTramitarPedido
 from .models import LineaPedido, Pedido, Producto
 
 logger = logging.getLogger(__name__)
+
+TALLAS_VALIDAS = {talla for talla, _ in Producto.TALLAS}
+PERMISO_PRODUCTO_ADD = 'shop_abrazapinos.add_producto'
+PERMISO_PRODUCTO_CHANGE = 'shop_abrazapinos.change_producto'
+PERMISO_PRODUCTO_DELETE = 'shop_abrazapinos.delete_producto'
+
+
+class VistaGestionProductos(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
+    """Muestra a personal autorizado el catálogo y las acciones disponibles."""
+
+    template_name = 'shop_abrazapinos/management.html'
+    login_url = 'login'
+
+    def test_func(self):
+        """Permite entrar si la cuenta tiene algún permiso de catálogo."""
+        return any(self.request.user.has_perm(permiso) for permiso in (
+            PERMISO_PRODUCTO_ADD,
+            PERMISO_PRODUCTO_CHANGE,
+            PERMISO_PRODUCTO_DELETE,
+        ))
+
+    def get_context_data(self, **kwargs):
+        contexto = super().get_context_data(**kwargs)
+        contexto.update({
+            'products': Producto.objects.all(),
+            'can_add_product': self.request.user.has_perm(PERMISO_PRODUCTO_ADD),
+            'can_change_product': self.request.user.has_perm(PERMISO_PRODUCTO_CHANGE),
+            'can_delete_product': self.request.user.has_perm(PERMISO_PRODUCTO_DELETE),
+        })
+        return contexto
+
+
+@login_required(login_url='login')
+@permission_required(PERMISO_PRODUCTO_ADD, raise_exception=True)
+def crear_producto(request):
+    """Crea un artículo del catálogo con los datos e imagen enviados."""
+    if request.method == 'POST':
+        formulario = FormularioProducto(request.POST, request.FILES)
+        if formulario.is_valid():
+            producto = formulario.save()
+            messages.success(request, f'El producto «{producto.name}» se ha creado.')
+            return redirect('gestion_productos')
+    else:
+        formulario = FormularioProducto()
+    return render(request, 'shop_abrazapinos/product_form.html', {
+        'form': formulario,
+        'page_title': 'Añadir producto',
+    })
+
+
+@login_required(login_url='login')
+@permission_required(PERMISO_PRODUCTO_CHANGE, raise_exception=True)
+def editar_producto(request, pk):
+    """Actualiza un producto y limpia su imagen anterior al reemplazarla."""
+    producto = get_object_or_404(Producto, pk=pk)
+    imagen_anterior = producto.image.name
+    if request.method == 'POST':
+        formulario = FormularioProducto(request.POST, request.FILES, instance=producto)
+        if formulario.is_valid():
+            producto = formulario.save()
+            if imagen_anterior and imagen_anterior != producto.image.name:
+                default_storage.delete(imagen_anterior)
+            messages.success(request, f'El producto «{producto.name}» se ha actualizado.')
+            return redirect('gestion_productos')
+    else:
+        formulario = FormularioProducto(instance=producto)
+    return render(request, 'shop_abrazapinos/product_form.html', {
+        'form': formulario,
+        'product': producto,
+        'page_title': 'Editar producto',
+    })
+
+
+@login_required(login_url='login')
+@permission_required(PERMISO_PRODUCTO_DELETE, raise_exception=True)
+@require_POST
+def eliminar_producto(request, pk):
+    """Elimina un producto si no forma parte del historial protegido de pedidos."""
+    producto = get_object_or_404(Producto, pk=pk)
+    nombre = producto.name
+    imagen = producto.image.name
+    try:
+        producto.delete()
+    except ProtectedError:
+        messages.error(
+            request,
+            f'No se puede eliminar «{nombre}» porque está incluido en pedidos existentes.',
+        )
+    else:
+        if imagen:
+            default_storage.delete(imagen)
+        messages.success(request, f'El producto «{nombre}» se ha eliminado.')
+    return redirect('gestion_productos')
 
 
 def _cliente_stripe():
@@ -32,37 +129,49 @@ def _cliente_stripe():
 
 def obtener_resumen_carrito(request):
     """Normaliza las cantidades de sesión y prepara importes para las plantillas."""
-    # La sesión almacena solo ID y cantidad; se descartan datos malformados antes
-    # de consultar modelos para no confiar en valores controlados por el navegador.
+    # La sesión almacena ID/talla/cantidad; se descartan datos malformados.
     carrito_sesion = request.session.get('carrito', {})
     if not isinstance(carrito_sesion, dict):
         carrito_sesion = {}
-    cantidades = {}
+    lineas_sesion = []
+    ids_producto = set()
 
-    for identificador, cantidad in carrito_sesion.items():
+    for clave, cantidad in carrito_sesion.items():
         try:
-            producto_id = int(identificador)
             cantidad = int(cantidad)
         except (TypeError, ValueError):
             continue
-        if producto_id > 0 and cantidad > 0:
-            cantidades[producto_id] = cantidad
+        producto_id, talla = _leer_clave_linea_carrito(clave)
+        if producto_id is not None and cantidad > 0:
+            lineas_sesion.append((producto_id, talla, cantidad))
+            ids_producto.add(producto_id)
 
     # in_bulk recupera todos los productos en una consulta y permite indexarlos por PK.
-    productos = Producto.objects.in_bulk(cantidades)
+    productos = Producto.objects.in_bulk(ids_producto)
     carrito_normalizado = {}
     lineas = []
+    stock_restante = {producto_id: producto.stock for producto_id, producto in productos.items()}
 
-    for producto_id, cantidad in cantidades.items():
+    for producto_id, talla, cantidad in lineas_sesion:
         producto = productos.get(producto_id)
-        if producto is None or producto.stock <= 0:
+        if producto is None:
+            continue
+        if producto.requires_size and talla not in TALLAS_VALIDAS:
+            continue
+        if not producto.requires_size and talla:
             continue
         # Si el stock bajó desde que se añadió el artículo, el resumen nunca promete más.
-        cantidad = min(cantidad, producto.stock)
-        carrito_normalizado[str(producto_id)] = cantidad
+        cantidad = min(cantidad, stock_restante[producto_id])
+        if cantidad <= 0:
+            continue
+        stock_restante[producto_id] -= cantidad
+        clave = _clave_linea_carrito(producto_id, talla)
+        carrito_normalizado[clave] = cantidad
         lineas.append({
             'product': producto,
             'quantity': cantidad,
+            'size': talla,
+            'cart_key': clave,
             'subtotal': producto.price * cantidad,
         })
 
@@ -88,6 +197,24 @@ def _redireccion_carrito(request, destino_por_defecto):
     ):
         return redirect(destino)
     return redirect(destino_por_defecto)
+
+
+def _clave_linea_carrito(producto_id, talla=''):
+    """Construye una clave distinta para cada talla sin cambiar claves antiguas."""
+    return f'{producto_id}:{talla}' if talla else str(producto_id)
+
+
+def _leer_clave_linea_carrito(clave):
+    """Interpreta claves históricas y nuevas del carrito de forma segura."""
+    try:
+        partes = str(clave).split(':', 1)
+        producto_id = int(partes[0])
+    except (TypeError, ValueError):
+        return None, ''
+    talla = partes[1] if len(partes) == 2 else ''
+    if producto_id <= 0 or (talla and talla not in TALLAS_VALIDAS):
+        return None, ''
+    return producto_id, talla
 
 
 class VistaTienda(TemplateView):
@@ -149,18 +276,33 @@ def anadir_al_carrito(request, pk):
         cantidad = int(request.POST.get('quantity', '1'))
     except (TypeError, ValueError):
         cantidad = 0
+    talla = request.POST.get('size', '').strip().upper()
+    clave = _clave_linea_carrito(producto.pk, talla)
 
     # Se suma a la cantidad existente y se valida el total acumulado, no solo el envío actual.
     carrito = request.session.get('carrito', {})
-    cantidad_actual = int(carrito.get(str(producto.pk), 0))
-    if cantidad <= 0:
+    if not isinstance(carrito, dict):
+        carrito = {}
+    if producto.requires_size and talla not in TALLAS_VALIDAS:
+        messages.error(request, 'Selecciona una talla válida para este producto.')
+    elif not producto.requires_size and talla:
+        messages.error(request, 'Este producto no requiere una talla.')
+    elif cantidad <= 0:
         messages.error(request, 'Indica una cantidad válida.')
-    elif cantidad_actual + cantidad > producto.stock:
-        messages.error(request, 'La cantidad solicitada supera el stock disponible.')
     else:
-        carrito[str(producto.pk)] = cantidad_actual + cantidad
-        request.session['carrito'] = carrito
-        messages.success(request, f'{producto.name} se ha añadido al carrito.')
+        cantidad_actual_producto = sum(
+            int(valor)
+            for otra_clave, valor in carrito.items()
+            if _leer_clave_linea_carrito(otra_clave)[0] == producto.pk
+            and str(valor).isdigit()
+        )
+        cantidad_actual_linea = int(carrito.get(clave, 0))
+        if cantidad_actual_producto + cantidad > producto.stock:
+            messages.error(request, 'La cantidad solicitada supera el stock disponible.')
+        else:
+            carrito[clave] = cantidad_actual_linea + cantidad
+            request.session['carrito'] = carrito
+            messages.success(request, f'{producto.name} se ha añadido al carrito.')
 
     return _redireccion_carrito(request, 'shop_home')
 
@@ -169,7 +311,8 @@ def anadir_al_carrito(request, pk):
 def quitar_del_carrito(request, pk):
     """Elimina por completo un producto del carrito de sesión."""
     carrito = request.session.get('carrito', {})
-    carrito.pop(str(pk), None)
+    talla = request.POST.get('size', '').strip().upper()
+    carrito.pop(_clave_linea_carrito(pk, talla), None)
     request.session['carrito'] = carrito
     messages.info(request, 'Se ha eliminado el producto del carrito.')
     return _redireccion_carrito(request, 'ver_carrito')
@@ -187,18 +330,30 @@ def actualizar_cantidad_carrito(request, pk):
     carrito = request.session.get('carrito', {})
     if not isinstance(carrito, dict):
         carrito = {}
+    talla = request.POST.get('size', '').strip().upper()
+    clave = _clave_linea_carrito(producto.pk, talla)
 
     # Cero es una operación válida de eliminación; valores negativos o mayores al stock no.
-    if cantidad < 0:
+    if producto.requires_size and talla not in TALLAS_VALIDAS:
+        messages.error(request, 'La talla del carrito no es válida.')
+    elif not producto.requires_size and talla:
+        messages.error(request, 'Este producto no requiere una talla.')
+    elif cantidad < 0:
         messages.error(request, 'Indica una cantidad válida.')
     elif cantidad == 0:
-        carrito.pop(str(producto.pk), None)
+        carrito.pop(clave, None)
         request.session['carrito'] = carrito
         messages.info(request, f'{producto.name} se ha quitado del carrito.')
-    elif cantidad > producto.stock:
+    elif cantidad + sum(
+        int(valor)
+        for otra_clave, valor in carrito.items()
+        if otra_clave != clave
+        and _leer_clave_linea_carrito(otra_clave)[0] == producto.pk
+        and str(valor).isdigit()
+    ) > producto.stock:
         messages.error(request, 'La cantidad solicitada supera el stock disponible.')
     else:
-        carrito[str(producto.pk)] = cantidad
+        carrito[clave] = cantidad
         request.session['carrito'] = carrito
         messages.success(request, f'Cantidad de {producto.name} actualizada.')
 
@@ -243,7 +398,13 @@ def confirmar_pedido(request):
         return render(request, 'shop_abrazapinos/checkout.html', contexto)
 
     # Se reconstruye la selección desde la sesión y la base, nunca desde precios del POST.
-    cantidades = {item['product'].pk: item['quantity'] for item in contexto['cart_items']}
+    ids_producto = {item['product'].pk for item in contexto['cart_items']}
+    cantidades_por_producto = {}
+    for item in contexto['cart_items']:
+        producto_id = item['product'].pk
+        cantidades_por_producto[producto_id] = (
+            cantidades_por_producto.get(producto_id, 0) + item['quantity']
+        )
     pedido = None
     stock_valido = True
 
@@ -253,17 +414,20 @@ def confirmar_pedido(request):
         # evitando que dos confirmaciones consuman simultáneamente las mismas unidades.
         productos = {
             producto.pk: producto
-            for producto in Producto.objects.select_for_update().filter(pk__in=cantidades)
+            for producto in Producto.objects.select_for_update().filter(pk__in=ids_producto)
         }
-        if len(productos) != len(cantidades) or any(
+        if len(productos) != len(ids_producto) or any(
             productos[producto_id].stock < cantidad
-            for producto_id, cantidad in cantidades.items()
+            for producto_id, cantidad in cantidades_por_producto.items()
             if producto_id in productos
         ):
             stock_valido = False
         else:
             total = sum(
-                (productos[producto_id].price * cantidad for producto_id, cantidad in cantidades.items()),
+                (
+                    productos[item['product'].pk].price * item['quantity']
+                    for item in contexto['cart_items']
+                ),
                 Decimal('0.00'),
             )
             pedido = Pedido.objects.create(
@@ -280,16 +444,19 @@ def confirmar_pedido(request):
                 estado='pendiente_pago',
             )
             # El detalle conserva el nombre y el precio aplicados, aunque luego cambie el catálogo.
-            for producto_id, cantidad in cantidades.items():
-                producto = productos[producto_id]
+            for item in contexto['cart_items']:
+                producto = productos[item['product'].pk]
                 LineaPedido.objects.create(
                     pedido=pedido,
                     producto=producto,
                     nombre_producto=producto.name,
                     precio_unitario=producto.price,
-                    cantidad=cantidad,
+                    cantidad=item['quantity'],
+                    talla=item['size'],
                 )
+            for producto_id, cantidad in cantidades_por_producto.items():
                 # La cantidad se descuenta como reserva y se repone si Stripe cancela o caduca.
+                producto = productos[producto_id]
                 producto.stock -= cantidad
                 producto.save(update_fields=['stock'])
 
@@ -302,7 +469,12 @@ def confirmar_pedido(request):
         {
             'price_data': {
                 'currency': settings.STRIPE_CURRENCY,
-                'product_data': {'name': linea.nombre_producto},
+                'product_data': {
+                    'name': (
+                        f'{linea.nombre_producto} (Talla {linea.talla})'
+                        if linea.talla else linea.nombre_producto
+                    ),
+                },
                 'unit_amount': int(linea.precio_unitario * 100),
             },
             'quantity': linea.cantidad,

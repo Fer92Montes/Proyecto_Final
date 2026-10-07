@@ -169,12 +169,14 @@
                         <article class="cart-row">
                             <div>
                                 <h2>{{ item.product.name }}</h2>
+                                {% if item.size %}<div class="muted">Talla: {{ item.size }}</div>{% endif %}
                                 <div class="muted">{{ item.product.price|stringformat:".2f" }} € por unidad</div>
                             </div>
                             <div class="cart-row-actions">
                                 <div class="subtotal">{{ item.subtotal|stringformat:".2f" }} €</div>
                                 <form method="post" action="{% url 'cart_remove' item.product.pk %}">
                                     {% csrf_token %}
+                                    <input type="hidden" name="size" value="{{ item.size }}">
                                     <input type="hidden" name="next" value="{% url 'ver_carrito' %}">
                                     <button class="remove-button" type="submit" aria-label="Eliminar {{ item.product.name }}">Eliminar</button>
                                 </form>
@@ -182,6 +184,7 @@
                             <!-- El servidor valida el nuevo valor; cero elimina la línea de la sesión. -->
                             <form class="line-quantity-form" method="post" action="{% url 'cart_update' item.product.pk %}">
                                 {% csrf_token %}
+                                <input type="hidden" name="size" value="{{ item.size }}">
                                 <input type="hidden" name="next" value="{% url 'ver_carrito' %}">
                                 <div class="cart-quantity-control" aria-label="Cantidad de {{ item.product.name }}">
                                     <button class="cart-quantity-step" type="button" data-step="-1" aria-label="Reducir cantidad">−</button>

@@ -4,7 +4,7 @@ from django.contrib.auth.models import User
 from django.test import TestCase
 from django.urls import reverse
 
-from shop_abrazapinos.models import Producto
+from shop_abrazapinos.models import LineaPedido, Pedido, Producto
 
 from .models import Friendship, Post, Profile
 
@@ -55,6 +55,78 @@ class PruebasAppSocial(TestCase):
         self.assertEqual(response.context['result_count'], 1)
         self.assertEqual(response.context['search_query'], 'Palabra')
 
+    def test_publicacion_oculta_no_es_visible_ni_para_su_autor(self):
+        """La moderación oculta publicaciones del feed, perfil y detalle."""
+        publicacion = Post.objects.create(
+            author=self.user,
+            title='Publicación bloqueada',
+            content='Contenido moderado',
+            visibility='public',
+            is_hidden=True,
+        )
+
+        self.client.force_login(self.user)
+        response_feed = self.client.get(reverse('social_home'))
+        response_detalle = self.client.get(reverse('detalle_publicacion', args=[publicacion.pk]))
+
+        self.assertNotContains(response_feed, publicacion.title)
+        self.assertEqual(response_feed.context['result_count'], 0)
+        self.assertEqual(response_detalle.status_code, 404)
+
+    def test_administrador_puede_ocultar_y_restaurar_publicaciones(self):
+        """Las acciones del panel bloquean y vuelven a mostrar publicaciones."""
+        administrador = User.objects.create_superuser(
+            username='admin_social',
+            email='admin@example.com',
+            password='ClaveSegura123!',
+        )
+        publicacion = Post.objects.create(
+            author=self.user,
+            title='Publicación moderable',
+            content='Contenido público',
+            visibility='public',
+        )
+        self.client.force_login(administrador)
+        url_admin = reverse('admin:social_abrazapinos_post_changelist')
+
+        respuesta_ocultar = self.client.post(url_admin, {
+            'action': 'ocultar_publicaciones',
+            '_selected_action': [publicacion.pk],
+            'index': 0,
+        })
+        publicacion.refresh_from_db()
+        self.assertEqual(respuesta_ocultar.status_code, 302)
+        self.assertTrue(publicacion.is_hidden)
+
+        respuesta_mostrar = self.client.post(url_admin, {
+            'action': 'mostrar_publicaciones',
+            '_selected_action': [publicacion.pk],
+            'index': 0,
+        })
+        publicacion.refresh_from_db()
+        self.assertEqual(respuesta_mostrar.status_code, 302)
+        self.assertFalse(publicacion.is_hidden)
+
+    def test_pantalla_de_moderacion_solo_aparece_y_abre_con_permiso(self):
+        """La gestión social está enlazada en el feed y bloqueada sin permisos."""
+        respuesta_anonima = self.client.get(reverse('gestion_publicaciones'))
+        self.assertEqual(respuesta_anonima.status_code, 302)
+
+        self.client.force_login(self.user)
+        respuesta_sin_permiso = self.client.get(reverse('gestion_publicaciones'))
+        self.assertEqual(respuesta_sin_permiso.status_code, 403)
+        self.assertNotContains(self.client.get(reverse('social_home')), 'Moderar publicaciones')
+
+        administrador = User.objects.create_superuser(
+            username='admin_moderacion',
+            email='admin@example.com',
+            password='ClaveSegura123!',
+        )
+        self.client.force_login(administrador)
+        respuesta_autorizada = self.client.get(reverse('gestion_publicaciones'))
+        self.assertEqual(respuesta_autorizada.status_code, 200)
+        self.assertContains(self.client.get(reverse('social_home')), 'Moderar publicaciones')
+
     def test_feed_social_pagina_seis_publicaciones_y_conserva_busqueda(self):
         """Comprueba seis publicaciones por página y retención de q entre páginas."""
         for numero in range(8):
@@ -79,6 +151,84 @@ class PruebasAppSocial(TestCase):
         self.client.login(username='ana', password='Test1234')
         response = self.client.get(reverse('profile'))
         self.assertEqual(response.status_code, 200)
+
+    def test_perfil_muestra_solo_historial_de_compras_confirmadas_del_usuario(self):
+        """El perfil incluye artículos comprados con talla y excluye otros pedidos."""
+        producto = Producto.objects.create(
+            name='Camiseta del club',
+            description='Camiseta técnica.',
+            price='25.00',
+            stock=4,
+            requires_size=True,
+        )
+        pedido_pagado = Pedido.objects.create(
+            usuario=self.user,
+            destinatario='Ana',
+            direccion='Calle 1',
+            ciudad='Baza',
+            provincia='Granada',
+            codigo_postal='18800',
+            pais='España',
+            metodo_pago='stripe',
+            total='50.00',
+            estado='pagado',
+        )
+        LineaPedido.objects.create(
+            pedido=pedido_pagado,
+            producto=producto,
+            nombre_producto='Camiseta del club',
+            precio_unitario='25.00',
+            cantidad=2,
+            talla='M',
+        )
+        pedido_pendiente = Pedido.objects.create(
+            usuario=self.user,
+            destinatario='Ana',
+            direccion='Calle 1',
+            ciudad='Baza',
+            provincia='Granada',
+            codigo_postal='18800',
+            pais='España',
+            metodo_pago='stripe',
+            total='25.00',
+            estado='pendiente_pago',
+        )
+        LineaPedido.objects.create(
+            pedido=pedido_pendiente,
+            producto=producto,
+            nombre_producto='Pedido sin pagar',
+            precio_unitario='25.00',
+            cantidad=1,
+        )
+        pedido_ajeno = Pedido.objects.create(
+            usuario=self.friend,
+            destinatario='Luis',
+            direccion='Calle 2',
+            ciudad='Baza',
+            provincia='Granada',
+            codigo_postal='18800',
+            pais='España',
+            metodo_pago='stripe',
+            total='25.00',
+            estado='pagado',
+        )
+        LineaPedido.objects.create(
+            pedido=pedido_ajeno,
+            producto=producto,
+            nombre_producto='Compra de otra persona',
+            precio_unitario='25.00',
+            cantidad=1,
+        )
+
+        self.client.force_login(self.user)
+        response = self.client.get(reverse('profile'))
+
+        self.assertContains(response, 'Historial de compras')
+        self.assertContains(response, 'Camiseta del club')
+        self.assertContains(response, 'Talla M')
+        self.assertContains(response, 'Pedido #{}'.format(pedido_pagado.pk))
+        self.assertNotContains(response, 'Pedido #{}'.format(pedido_pendiente.pk))
+        self.assertNotContains(response, 'Compra de otra persona')
 
     def test_login_y_registro_sin_destino_vuelven_al_feed_social(self):
         """Comprueba que el feed es el destino predeterminado tras autenticarse."""

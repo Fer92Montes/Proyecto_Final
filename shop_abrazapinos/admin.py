@@ -9,8 +9,11 @@ from .models import LineaPedido, Pedido, Producto
 class AdminProducto(admin.ModelAdmin):
     """Permite gestionar los productos desde el panel de administración."""
 
-    list_display = ('name', 'price', 'stock', 'created_at')
+    list_display = ('name', 'price', 'stock', 'requires_size', 'created_at')
     search_fields = ('name', 'description')
+    list_editable = ('price', 'stock')
+    fields = ('name', 'description', 'price', 'stock', 'image', 'requires_size', 'created_at')
+    readonly_fields = ('created_at',)
 
 
 ProductAdmin = AdminProducto

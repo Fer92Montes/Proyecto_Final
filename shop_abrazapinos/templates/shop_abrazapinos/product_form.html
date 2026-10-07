@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ page_title }} | Abrazapinos</title>
+    <style>
+        body { margin: 0; background: #f4efe9; color: #2c1d12; font: 16px Arial, sans-serif; }
+        main { max-width: 720px; margin: 36px auto; padding: 0 18px; }
+        section { background: white; border: 1px solid #e5d7ca; border-radius: 14px; padding: 24px; }
+        form { display: grid; gap: 16px; }
+        form p { display: grid; gap: 7px; margin: 0; }
+        input, textarea { max-width: 100%; padding: 10px; border: 1px solid #cbb9a8; border-radius: 7px; font: inherit; }
+        input[type="checkbox"] { width: auto; }
+        button, a { display: inline-block; border: 0; border-radius: 8px; padding: 10px 14px; background: #6b3f28; color: white; font: inherit; font-weight: bold; text-decoration: none; cursor: pointer; }
+        .errorlist { color: #a83232; }
+        img { display: block; max-width: 100%; max-height: 260px; margin-bottom: 12px; }
+    </style>
+</head>
+<body>
+    <main>
+        <section>
+            <h1>{{ page_title }}</h1>
+            {% if product.image %}<img src="{{ product.image.url }}" alt="Imagen actual de {{ product.name }}">{% endif %}
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                {{ form.as_p }}
+                <div>
+                    <button type="submit">Guardar producto</button>
+                    <a href="{% url 'gestion_productos' %}">Cancelar</a>
+                </div>
+            </form>
+        </section>
+    </main>
+</body>
+</html>

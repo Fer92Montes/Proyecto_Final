@@ -273,6 +273,8 @@
         .catalog-search button, .catalog-search .clear-search { min-height: 42px; display: inline-flex; align-items: center; justify-content: center; padding: 9px 14px; border: 1px solid var(--primary); border-radius: 8px; background: var(--primary); color: white; font: inherit; font-weight: bold; text-decoration: none; cursor: pointer; }
         .catalog-search .clear-search { background: transparent; color: var(--text); border-color: var(--line); }
         .catalog-results { margin: 0; color: var(--muted); }
+        .size-selector { display: grid; gap: 5px; font-weight: bold; }
+        .size-selector select { min-height: 38px; padding: 7px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--text); font: inherit; }
         .pagination { display: flex; justify-content: center; align-items: center; gap: 14px; margin-top: 28px; }
         .pagination a { padding: 9px 12px; border: 1px solid var(--line); border-radius: 8px; color: var(--text); text-decoration: none; background: var(--panel); }
         a:focus-visible, button:focus-visible, input:focus-visible { outline: 3px solid #d9903d; outline-offset: 3px; }
@@ -293,6 +295,9 @@
                 {% if user.is_authenticated %}
                     <span>Hola, {{ user.username }}</span>
                     <a href="{% url 'profile' %}">Mi perfil</a>
+                    {% if perms.shop_abrazapinos.add_producto or perms.shop_abrazapinos.change_producto or perms.shop_abrazapinos.delete_producto %}
+                        <a href="{% url 'gestion_productos' %}">Gestionar productos</a>
+                    {% endif %}
                     <a href="{% url 'logout' %}">Cerrar sesión</a>
                 {% else %}
                     <a href="{% url 'login' %}">Iniciar sesión</a>
@@ -314,6 +319,9 @@
             <h1>Sección de compraventa</h1>
             <p>Descubre productos, ofertas y artículos de la comunidad de Abrazapinos.</p>
             <a href="/social/">Volver a la social</a>
+            {% if perms.shop_abrazapinos.add_producto or perms.shop_abrazapinos.change_producto or perms.shop_abrazapinos.delete_producto %}
+                <p><a href="{% url 'gestion_productos' %}">Gestionar el catálogo de productos</a></p>
+            {% endif %}
         </section>
 
         <!-- El filtro consulta nombre y descripción; el parámetro q se conserva en la URL. -->
@@ -335,6 +343,9 @@
             <div class="cards">
                 {% for product in products %}
                     <article class="card">
+                        {% if product.image %}
+                            <img src="{{ product.image.url }}" alt="{{ product.name }}" style="display:block; width:100%; max-height:240px; object-fit:cover; border-radius:12px; margin-bottom:14px;">
+                        {% endif %}
                         <h3>{{ product.name }}</h3>
                         <p>{{ product.description|truncatewords:20 }}</p>
                         <div class="price">{{ product.price|stringformat:".2f" }} €</div>

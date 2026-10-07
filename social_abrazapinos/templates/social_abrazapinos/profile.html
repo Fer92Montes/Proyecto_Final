@@ -279,6 +279,28 @@
             {% endif %}
         </div>
 
+        <div class="card section-block">
+            <h3>Historial de compras</h3>
+            {% if purchase_orders %}
+                {% for order in purchase_orders %}
+                    <div style="border-top:1px solid var(--line); padding-top:12px; margin-top:12px;">
+                        <strong>Pedido #{{ order.pk }}</strong>
+                        <p>{{ order.get_estado_display }} · {{ order.creado_en|date:"d/m/Y H:i" }} · Total: {{ order.total|stringformat:".2f" }} €</p>
+                        <ul>
+                            {% for line in order.lineas.all %}
+                                <li>
+                                    {{ line.nombre_producto }}{% if line.talla %} — Talla {{ line.talla }}{% endif %}
+                                    · {{ line.cantidad }} × {{ line.precio_unitario|stringformat:".2f" }} €
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <p>Aún no tienes compras completadas.</p>
+            {% endif %}
+        </div>
+
         <p style="margin-top: 22px;"><a href="{% url 'logout' %}" class="logout-link">Cerrar sesión</a></p>
     </div>
 

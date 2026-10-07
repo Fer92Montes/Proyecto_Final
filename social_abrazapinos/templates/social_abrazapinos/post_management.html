@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Moderar publicaciones | Abrazapinos</title>
+    <style>
+        body { margin: 0; background: #edf5f0; color: #17362b; font: 16px Arial, sans-serif; }
+        main { max-width: 1000px; margin: 36px auto; padding: 0 18px; }
+        header, article { background: white; border: 1px solid #dfeae3; border-radius: 14px; padding: 18px; margin-bottom: 16px; }
+        header, .post-heading, .actions { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+        article p { white-space: pre-line; }
+        a, button { display: inline-block; border: 0; border-radius: 8px; padding: 10px 14px; background: #1d5b3d; color: white; font: inherit; font-weight: bold; text-decoration: none; cursor: pointer; }
+        button.danger { background: #a83232; }
+        .muted { color: #5d756b; }
+        .hidden { color: #a83232; font-weight: bold; }
+        .messages { padding: 10px 14px; background: white; border-radius: 8px; }
+    </style>
+</head>
+<body>
+    <main>
+        <header>
+            <div><h1>Moderar publicaciones</h1><p class="muted">Oculta temporalmente contenido o elimínalo de forma permanente.</p></div>
+            <a href="{% url 'social_home' %}">Volver a Social</a>
+        </header>
+        {% if messages %}
+            <div class="messages" role="status">{% for message in messages %}<p>{{ message }}</p>{% endfor %}</div>
+        {% endif %}
+        {% for post in posts %}
+            <article>
+                <div class="post-heading">
+                    <div>
+                        <h2>{{ post.title }}</h2>
+                        <p class="muted">Por {{ post.author.username }} · {{ post.created_at|date:"d/m/Y H:i" }} · {{ post.get_visibility_display }}</p>
+                    </div>
+                    {% if post.is_hidden %}<span class="hidden">Oculta por moderación</span>{% else %}<span>Visible</span>{% endif %}
+                </div>
+                <p>{{ post.content|truncatewords:60 }}</p>
+                <div class="actions">
+                    <a href="{% url 'detalle_publicacion' post.pk %}">Ver publicación</a>
+                    {% if can_moderate_posts %}
+                        <form method="post" action="{% url 'moderar_publicacion' post.pk %}">
+                            {% csrf_token %}
+                            {% if post.is_hidden %}
+                                <input type="hidden" name="action" value="show">
+                                <button type="submit">Volver a mostrar</button>
+                            {% else %}
+                                <input type="hidden" name="action" value="hide">
+                                <button type="submit">Ocultar publicación</button>
+                            {% endif %}
+                        </form>
+                    {% endif %}
+                    {% if can_delete_posts %}
+                        <form method="post" action="{% url 'eliminar_publicacion_admin' post.pk %}" onsubmit="return confirm('¿Eliminar esta publicación definitivamente?');">
+                            {% csrf_token %}
+                            <button class="danger" type="submit">Eliminar definitivamente</button>
+                        </form>
+                    {% endif %}
+                </div>
+            </article>
+        {% empty %}
+            <article><p>No hay publicaciones para moderar.</p></article>
+        {% endfor %}
+    </main>
+</body>
+</html>

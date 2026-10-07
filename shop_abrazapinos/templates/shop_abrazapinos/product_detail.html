@@ -176,6 +176,8 @@
             color: var(--muted);
             white-space: pre-line;
         }
+        .size-selector { display: grid; gap: 5px; font-weight: bold; }
+        .size-selector select { min-height: 38px; padding: 7px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--text); font: inherit; }
 
         .actions {
             margin-top: 30px;
@@ -235,6 +237,9 @@
         {% endif %}
         <article class="card">
             <!-- El producto viene del contexto 'product' y se muestra con nombre, precio y descripción. -->
+            {% if product.image %}
+                <img src="{{ product.image.url }}" alt="{{ product.name }}" style="display:block; width:100%; max-height:420px; object-fit:contain; border-radius:12px; margin-bottom:20px;">
+            {% endif %}
             <h1>{{ product.name }}</h1>
             <div class="stock">Stock disponible: {{ product.stock }}</div>
             <div class="price">{{ product.price|stringformat:".2f" }} €</div>

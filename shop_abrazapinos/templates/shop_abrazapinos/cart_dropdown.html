@@ -12,18 +12,21 @@
                     <div class="cart-popover-row">
                         <div class="cart-popover-product">
                             <strong>{{ item.product.name }}</strong>
+                            {% if item.size %}<small>Talla: {{ item.size }}</small>{% endif %}
                             <small>{{ item.product.price|stringformat:".2f" }} € por unidad</small>
                         </div>
                         <div class="cart-popover-actions">
                             <strong class="cart-popover-subtotal">{{ item.subtotal|stringformat:".2f" }} €</strong>
                             <form method="post" action="{% url 'cart_remove' item.product.pk %}">
                                 {% csrf_token %}
+                                <input type="hidden" name="size" value="{{ item.size }}">
                                 <input type="hidden" name="next" value="{{ request.get_full_path }}">
                                 <button class="cart-remove" type="submit" aria-label="Eliminar {{ item.product.name }}">×</button>
                             </form>
                         </div>
                         <form class="line-quantity-form" method="post" action="{% url 'cart_update' item.product.pk %}">
                             {% csrf_token %}
+                            <input type="hidden" name="size" value="{{ item.size }}">
                             {# El destino de retorno se valida en la vista antes de redirigir. #}
                             <input type="hidden" name="next" value="{{ request.get_full_path }}">
                             <div class="cart-quantity-control" aria-label="Cantidad de {{ item.product.name }}">

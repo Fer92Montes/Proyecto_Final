@@ -310,6 +310,9 @@
                 {% if user.is_authenticated %}
                     <span class="welcome">Hola, {{ user.username }}</span>
                     <a href="{% url 'profile' %}">Mi perfil</a>
+                    {% if perms.social_abrazapinos.change_post or perms.social_abrazapinos.delete_post %}
+                        <a href="{% url 'gestion_publicaciones' %}">Gestionar publicaciones</a>
+                    {% endif %}
                     <a href="{% url 'logout' %}">Cerrar sesión</a>
                 {% else %}
                     <a href="{% url 'login' %}">Iniciar sesión</a>
@@ -324,6 +327,11 @@
         <section class="hero">
             <h1>Bienvenido a la parte social</h1>
             <p>Comparte historias, rutas, momentos y novedades con la comunidad de Abrazapinos.</p>
+            {% if perms.social_abrazapinos.change_post or perms.social_abrazapinos.delete_post %}
+                <div class="actions">
+                    <a href="{% url 'gestion_publicaciones' %}">Moderar publicaciones</a>
+                </div>
+            {% endif %}
             {% if user.is_authenticated %}
                 <div class="actions">
                     <a href="{% url 'create_post' %}">Crear publicación</a>

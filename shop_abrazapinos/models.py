@@ -7,10 +7,20 @@ from django.db import models
 class Producto(models.Model):
     """Representa un producto disponible en la sección de compraventa."""
 
+    TALLAS = [
+        ('S', 'S'),
+        ('M', 'M'),
+        ('L', 'L'),
+        ('XL', 'XL'),
+        ('XXL', 'XXL'),
+    ]
+
     name = models.CharField(max_length=200)
     description = models.TextField()
     price = models.DecimalField(max_digits=8, decimal_places=2)
     stock = models.PositiveIntegerField(default=0)
+    image = models.ImageField(upload_to='productos/', blank=True)
+    requires_size = models.BooleanField(default=False, verbose_name='Requiere seleccionar talla')
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -74,13 +84,14 @@ class Pedido(models.Model):
 # Cada línea congela el nombre y precio aplicados para que cambios futuros del catálogo
 # no modifiquen el importe de un pedido ya registrado.
 class LineaPedido(models.Model):
-    """Conserva cantidad, nombre y precio del producto al confirmar la compra."""
+    """Conserva nombre, precio, talla y cantidad al confirmar la compra."""
 
     pedido = models.ForeignKey(Pedido, on_delete=models.CASCADE, related_name='lineas')
     producto = models.ForeignKey(Producto, on_delete=models.PROTECT)
     nombre_producto = models.CharField(max_length=200)
     precio_unitario = models.DecimalField(max_digits=8, decimal_places=2)
     cantidad = models.PositiveIntegerField()
+    talla = models.CharField(max_length=3, choices=Producto.TALLAS, blank=True, default='')
 
     @property
     def subtotal(self):

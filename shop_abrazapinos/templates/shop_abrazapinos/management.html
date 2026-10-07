@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Gestionar productos | Abrazapinos</title>
+    <style>
+        body { margin: 0; background: #f4efe9; color: #2c1d12; font: 16px Arial, sans-serif; }
+        main { max-width: 1000px; margin: 36px auto; padding: 0 18px; }
+        header, article { background: white; border: 1px solid #e5d7ca; border-radius: 14px; padding: 18px; margin-bottom: 16px; }
+        header, .product-row, .actions { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+        .product-row { justify-content: flex-start; }
+        img { width: 90px; height: 70px; object-fit: cover; border-radius: 8px; }
+        a, button { display: inline-block; border: 0; border-radius: 8px; padding: 10px 14px; background: #6b3f28; color: white; font: inherit; font-weight: bold; text-decoration: none; cursor: pointer; }
+        button.danger { background: #a83232; }
+        .messages { padding: 10px 14px; background: white; border-radius: 8px; }
+        .muted { color: #6f5849; }
+    </style>
+</head>
+<body>
+    <main>
+        <header>
+            <div><h1>Gestionar productos</h1><p class="muted">Administra precios, existencias, descripciones e imágenes.</p></div>
+            <div class="actions">
+                <a href="{% url 'shop_home' %}">Volver a la tienda</a>
+                {% if can_add_product %}<a href="{% url 'crear_producto' %}">Añadir producto</a>{% endif %}
+            </div>
+        </header>
+        {% if messages %}
+            <div class="messages" role="status">{% for message in messages %}<p>{{ message }}</p>{% endfor %}</div>
+        {% endif %}
+        {% for product in products %}
+            <article class="product-row">
+                {% if product.image %}<img src="{{ product.image.url }}" alt="">{% endif %}
+                <div>
+                    <h2>{{ product.name }}</h2>
+                    <p class="muted">{{ product.price|stringformat:".2f" }} € · Stock: {{ product.stock }}{% if product.requires_size %} · Requiere talla{% endif %}</p>
+                </div>
+                <div class="actions">
+                    <a href="{% url 'detalle_producto' product.pk %}">Ver producto</a>
+                    {% if can_change_product %}<a href="{% url 'editar_producto' product.pk %}">Editar</a>{% endif %}
+                    {% if can_delete_product %}
+                        <form method="post" action="{% url 'eliminar_producto' product.pk %}" onsubmit="return confirm('¿Eliminar este producto definitivamente?');">
+                            {% csrf_token %}
+                            <button class="danger" type="submit">Eliminar</button>
+                        </form>
+                    {% endif %}
+                </div>
+            </article>
+        {% empty %}
+            <article><p>Aún no hay productos en el catálogo.</p></article>
+        {% endfor %}
+    </main>
+</body>
+</html>

@@ -8,6 +8,9 @@ from . import views
 # procesarla. Los nombres de ruta se usan luego en templates y redirecciones.
 urlpatterns = [
     path('', views.VistaInicioSocial.as_view(), name='social_home'),
+    path('gestion/publicaciones/', views.VistaGestionPublicaciones.as_view(), name='gestion_publicaciones'),
+    path('gestion/publicaciones/<int:pk>/moderar/', views.moderar_publicacion, name='moderar_publicacion'),
+    path('gestion/publicaciones/<int:pk>/eliminar/', views.eliminar_publicacion_admin, name='eliminar_publicacion_admin'),
     path('profile/', views.VistaPerfilUsuario.as_view(), name='profile'),
     path('profile/edit/', views.VistaEditarPerfil.as_view(), name='edit_profile'),
     path('profile/<str:username>/add_friend/', views.VistaAgregarAmigo.as_view(), name='add_friend'),

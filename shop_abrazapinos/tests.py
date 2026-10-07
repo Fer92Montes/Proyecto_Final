@@ -1,10 +1,14 @@
 from decimal import Decimal
+from io import BytesIO
+import tempfile
 from types import SimpleNamespace
 from unittest.mock import patch
 
 from django.contrib.auth.models import User
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, override_settings
 from django.urls import reverse
+from PIL import Image
 
 from .models import LineaPedido, Pedido, Producto
 
@@ -45,6 +49,58 @@ class PruebasCarrito(TestCase):
 		self.assertRedirects(respuesta, reverse('shop_home'))
 		self.assertEqual(self.client.session.get('carrito', {}), {})
 
+	def test_producto_con_talla_exige_talla_y_controla_stock_entre_tallas(self):
+		"""Cada talla forma su línea de carrito y comparte el stock del producto."""
+		self.producto.requires_size = True
+		self.producto.stock = 3
+		self.producto.save(update_fields=['requires_size', 'stock'])
+
+		respuesta_sin_talla = self.client.post(
+			reverse('cart_add', args=[self.producto.pk]),
+			{'quantity': '1'},
+		)
+		self.assertRedirects(respuesta_sin_talla, reverse('shop_home'))
+		self.assertEqual(self.client.session.get('carrito', {}), {})
+
+		self.client.post(
+			reverse('cart_add', args=[self.producto.pk]),
+			{'quantity': '2', 'size': 'S'},
+		)
+		self.client.post(
+			reverse('cart_add', args=[self.producto.pk]),
+			{'quantity': '2', 'size': 'M'},
+		)
+		self.assertEqual(
+			self.client.session['carrito'],
+			{f'{self.producto.pk}:S': 2},
+		)
+		resumen = self.client.get(reverse('ver_carrito'))
+		self.assertContains(resumen, 'Talla: S')
+		self.assertEqual(resumen.context['cart_count'], 2)
+
+		respuesta_update = self.client.post(
+			reverse('cart_update', args=[self.producto.pk]),
+			{'quantity': '1', 'size': 'S'},
+		)
+		self.assertEqual(respuesta_update.status_code, 302)
+		self.client.post(
+			reverse('cart_remove', args=[self.producto.pk]),
+			{'size': 'S'},
+		)
+		self.assertEqual(self.client.session['carrito'], {})
+
+	def test_selector_de_talla_solo_se_muestra_para_productos_que_la_requieren(self):
+		"""Catálogo y ficha muestran las cinco tallas cuando el producto las requiere."""
+		self.producto.requires_size = True
+		self.producto.save(update_fields=['requires_size'])
+
+		respuesta_catalogo = self.client.get(reverse('shop_home'))
+		respuesta_detalle = self.client.get(reverse('detalle_producto', args=[self.producto.pk]))
+		for respuesta in (respuesta_catalogo, respuesta_detalle):
+			self.assertContains(respuesta, 'name="size"')
+			for talla in ('S', 'M', 'L', 'XL', 'XXL'):
+				self.assertContains(respuesta, f'value="{talla}"')
+
 	def test_catalogo_y_detalle_muestran_controles_de_compra(self):
 		"""Asegura que catálogo y ficha muestran las acciones ligadas al carrito."""
 		respuesta_catalogo = self.client.get(reverse('shop_home'))
@@ -74,6 +130,121 @@ class PruebasCarrito(TestCase):
 
 		respuesta_descripcion = self.client.get(reverse('shop_home'), {'q': 'excursiones'})
 		self.assertContains(respuesta_descripcion, otro_producto.name)
+
+	def test_administrador_crea_edita_y_elimina_producto_con_imagen(self):
+		"""El panel permite mantener catálogo, stock, precio, descripción e imagen."""
+		administrador = User.objects.create_superuser(
+			username='admin_tienda',
+			email='admin@example.com',
+			password='ClaveSegura123!',
+		)
+		self.client.force_login(administrador)
+		buffer = BytesIO()
+		Image.new('RGB', (1, 1), color='green').save(buffer, format='PNG')
+		contenido_imagen = buffer.getvalue()
+		datos_imagen = SimpleUploadedFile(
+			'producto.png',
+			contenido_imagen,
+			content_type='image/png',
+		)
+
+		with tempfile.TemporaryDirectory() as media_root, self.settings(MEDIA_ROOT=media_root):
+			respuesta_crear = self.client.post(
+				reverse('admin:shop_abrazapinos_producto_add'),
+				{
+					'name': 'Casco de montaña',
+					'description': 'Casco resistente para rutas.',
+					'price': '34.90',
+					'stock': '8',
+					'image': datos_imagen,
+					'_save': 'Guardar',
+				},
+			)
+			self.assertEqual(respuesta_crear.status_code, 302)
+			producto = Producto.objects.get(name='Casco de montaña')
+			self.assertTrue(producto.image.name.startswith('productos/'))
+
+			respuesta_editar = self.client.post(
+				reverse('admin:shop_abrazapinos_producto_change', args=[producto.pk]),
+				{
+					'name': 'Casco de montaña',
+					'description': 'Casco ligero actualizado.',
+					'price': '39.90',
+					'stock': '12',
+					'_save': 'Guardar',
+				},
+			)
+			self.assertEqual(respuesta_editar.status_code, 302)
+			producto.refresh_from_db()
+			self.assertEqual(producto.description, 'Casco ligero actualizado.')
+			self.assertEqual(producto.price, Decimal('39.90'))
+			self.assertEqual(producto.stock, 12)
+			self.assertContains(
+				self.client.get(reverse('shop_home')),
+				f'src="{producto.image.url}"',
+			)
+			self.assertContains(
+				self.client.get(reverse('detalle_producto', args=[producto.pk])),
+				f'src="{producto.image.url}"',
+			)
+
+			respuesta_eliminar = self.client.post(
+				reverse('admin:shop_abrazapinos_producto_delete', args=[producto.pk]),
+				{'post': 'yes'},
+			)
+			self.assertEqual(respuesta_eliminar.status_code, 302)
+			self.assertFalse(Producto.objects.filter(pk=producto.pk).exists())
+
+	def test_gestion_de_productos_desde_la_tienda_requiere_permisos(self):
+		"""Enlace y pantalla de gestión solo se ofrecen a cuentas autorizadas."""
+		self.assertNotContains(self.client.get(reverse('shop_home')), 'Gestionar el catálogo')
+		respuesta_sin_sesion = self.client.get(reverse('gestion_productos'))
+		self.assertEqual(respuesta_sin_sesion.status_code, 302)
+
+		usuario = User.objects.create_user(username='sin_permisos', password='ClaveSegura123!')
+		self.client.force_login(usuario)
+		self.assertEqual(self.client.get(reverse('gestion_productos')).status_code, 403)
+
+		administrador = User.objects.create_superuser(
+			username='admin_catalogo',
+			email='admin@example.com',
+			password='ClaveSegura123!',
+		)
+		self.client.force_login(administrador)
+		respuesta_autorizada = self.client.get(reverse('gestion_productos'))
+		self.assertEqual(respuesta_autorizada.status_code, 200)
+		self.assertContains(self.client.get(reverse('shop_home')), 'Gestionar el catálogo')
+		self.assertContains(respuesta_autorizada, 'Añadir producto')
+
+		respuesta_crear = self.client.post(reverse('crear_producto'), {
+			'name': 'Guantes de ciclismo',
+			'description': 'Guantes para rutas largas.',
+			'price': '19.95',
+			'stock': '7',
+		})
+		self.assertEqual(respuesta_crear.status_code, 302)
+		producto = Producto.objects.get(name='Guantes de ciclismo')
+
+		respuesta_editar = self.client.post(
+			reverse('editar_producto', args=[producto.pk]),
+			{
+				'name': 'Guantes de ciclismo',
+				'description': 'Descripción actualizada.',
+				'price': '21.95',
+				'stock': '9',
+			},
+		)
+		self.assertEqual(respuesta_editar.status_code, 302)
+		producto.refresh_from_db()
+		self.assertEqual(producto.description, 'Descripción actualizada.')
+		self.assertEqual(producto.price, Decimal('21.95'))
+		self.assertEqual(producto.stock, 9)
+
+		respuesta_eliminar = self.client.post(
+			reverse('eliminar_producto', args=[producto.pk]),
+		)
+		self.assertEqual(respuesta_eliminar.status_code, 302)
+		self.assertFalse(Producto.objects.filter(pk=producto.pk).exists())
 
 	def test_catalogo_pagina_seis_productos_y_conserva_busqueda(self):
 		"""Verifica tamaño de página y que el enlace anterior conserva el filtro activo."""
@@ -258,6 +429,45 @@ class PruebasCarrito(TestCase):
 		pedido.refresh_from_db()
 		self.assertEqual(pedido.estado, 'pagado')
 		self.assertEqual(self.client.session['carrito'], {})
+
+	@override_settings(STRIPE_SECRET_KEY='sk_test_abrazapinos')
+	@patch('shop_abrazapinos.views._cliente_stripe')
+	def test_checkout_conserva_talla_en_pedido_y_checkout_stripe(self, crear_cliente):
+		"""La talla elegida queda en la línea histórica y en el artículo de Stripe."""
+		cliente = crear_cliente.return_value
+		cliente.v1.checkout.sessions.create.return_value = SimpleNamespace(
+			id='cs_test_talla',
+			url='https://checkout.stripe.test/session',
+		)
+		self.producto.requires_size = True
+		self.producto.save(update_fields=['requires_size'])
+		self.client.post(
+			reverse('cart_add', args=[self.producto.pk]),
+			{'quantity': '1', 'size': 'XL'},
+		)
+		usuario = User.objects.create_user(username='cliente_talla', password='ClaveSegura123!')
+		self.client.force_login(usuario)
+
+		self.client.post(
+			reverse('confirmar_pedido'),
+			{
+				'destinatario': 'Ana Ejemplo',
+				'direccion': 'Calle de la Sierra 12',
+				'ciudad': 'Baza',
+				'provincia': 'Granada',
+				'codigo_postal': '18800',
+				'pais': 'España',
+				'metodo_pago': 'stripe',
+			},
+		)
+
+		linea = LineaPedido.objects.get(pedido__usuario=usuario)
+		self.assertEqual(linea.talla, 'XL')
+		parametros = cliente.v1.checkout.sessions.create.call_args.kwargs['params']
+		self.assertEqual(
+			parametros['line_items'][0]['price_data']['product_data']['name'],
+			'Bastones de marcha (Talla XL)',
+		)
 
 	@override_settings(STRIPE_WEBHOOK_SECRET='whsec_test_abrazapinos')
 	@patch('shop_abrazapinos.views.stripe.Webhook.construct_event')

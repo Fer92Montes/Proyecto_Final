@@ -37,14 +37,20 @@ class ServicioSocial:
         """Devuelve las publicaciones visibles para un usuario concreto."""
         # Los visitantes anónimos solo pueden ver publicaciones públicas.
         if usuario is None or not getattr(usuario, 'is_authenticated', False):
-            return Post.objects.filter(visibility='public').order_by('-created_at')
+            return Post.objects.filter(
+                visibility='public',
+                is_hidden=False,
+            ).order_by('-created_at')
 
         amigos = ServicioSocial.obtener_amigos_usuario(usuario)
         # El feed combina tres fuentes: publicaciones propias, públicas y de amigos.
         return Post.objects.filter(
-            Q(author=usuario)
-            | Q(visibility='public')
-            | (Q(visibility='friends') & Q(author__in=amigos))
+            Q(is_hidden=False)
+            & (
+                Q(author=usuario)
+                | Q(visibility='public')
+                | (Q(visibility='friends') & Q(author__in=amigos))
+            )
         ).distinct().order_by('-created_at')
 
     @staticmethod
@@ -52,7 +58,7 @@ class ServicioSocial:
         """Obtiene los posts del usuario filtrados según el usuario que los está viendo."""
         # Se consulta el conjunto de publicaciones del autor y luego se filtra con la
         # lógica de visibilidad de cada post según el visitante concreto.
-        queryset = Post.objects.filter(author=usuario).order_by('-created_at')
+        queryset = Post.objects.filter(author=usuario, is_hidden=False).order_by('-created_at')
         return [publicacion for publicacion in queryset if publicacion.is_visible_to(visitante)]
 
     # Alias de compatibilidad con nombres anteriores.

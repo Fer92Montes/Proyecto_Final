@@ -8,6 +8,10 @@ from . import views
 # Los nombres permiten construir enlaces desde plantillas sin fijar rutas manualmente.
 urlpatterns = [
     path('', views.inicio, name='shop_home'),
+    path('gestion/', views.VistaGestionProductos.as_view(), name='gestion_productos'),
+    path('gestion/productos/nuevo/', views.crear_producto, name='crear_producto'),
+    path('gestion/productos/<int:pk>/editar/', views.editar_producto, name='editar_producto'),
+    path('gestion/productos/<int:pk>/eliminar/', views.eliminar_producto, name='eliminar_producto'),
     path('carrito/', views.ver_carrito, name='ver_carrito'),
     path('carrito/anadir/<int:pk>/', views.anadir_al_carrito, name='cart_add'),
     # Actualiza la cantidad de una línea; enviar cero elimina el producto de la sesión.

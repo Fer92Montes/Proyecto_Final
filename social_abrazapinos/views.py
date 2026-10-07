@@ -1,9 +1,11 @@
 """Vistas de la aplicación social."""
 
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required, permission_required
 from django.contrib.auth import login, logout
 from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
 from django.contrib.auth.models import User
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.core.paginator import Paginator
 from django.db.models import Q
 from django.http import Http404
@@ -11,6 +13,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views import View
 from django.views.generic import TemplateView
+from django.views.decorators.http import require_POST
 
 from .forms import (
     FormularioCambioContrasena,
@@ -64,6 +67,65 @@ class VistaInicioSocial(TemplateView):
         return contexto
 
 
+class VistaGestionPublicaciones(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
+    """Muestra todas las publicaciones y las herramientas de moderación."""
+
+    template_name = 'social_abrazapinos/post_management.html'
+    login_url = 'login'
+
+    def test_func(self):
+        """Permite entrar si la cuenta puede moderar o eliminar publicaciones."""
+        return (
+            self.request.user.has_perm('social_abrazapinos.change_post')
+            or self.request.user.has_perm('social_abrazapinos.delete_post')
+        )
+
+    def get_context_data(self, **kwargs):
+        contexto = super().get_context_data(**kwargs)
+        contexto.update({
+            'posts': Post.objects.select_related('author').all(),
+            'can_moderate_posts': self.request.user.has_perm(
+                'social_abrazapinos.change_post'
+            ),
+            'can_delete_posts': self.request.user.has_perm(
+                'social_abrazapinos.delete_post'
+            ),
+        })
+        return contexto
+
+
+@login_required(login_url='login')
+@permission_required('social_abrazapinos.change_post', raise_exception=True)
+@require_POST
+def moderar_publicacion(request, pk):
+    """Oculta o restaura una publicación desde las herramientas sociales."""
+    publicacion = get_object_or_404(Post, pk=pk)
+    accion = request.POST.get('action')
+    if accion == 'hide':
+        publicacion.is_hidden = True
+        mensaje = 'La publicación se ha ocultado.'
+    elif accion == 'show':
+        publicacion.is_hidden = False
+        mensaje = 'La publicación vuelve a estar visible.'
+    else:
+        messages.error(request, 'La acción de moderación no es válida.')
+        return redirect('gestion_publicaciones')
+    publicacion.save(update_fields=['is_hidden'])
+    messages.success(request, mensaje)
+    return redirect('gestion_publicaciones')
+
+
+@login_required(login_url='login')
+@permission_required('social_abrazapinos.delete_post', raise_exception=True)
+@require_POST
+def eliminar_publicacion_admin(request, pk):
+    """Elimina una publicación desde la pantalla de moderación."""
+    publicacion = get_object_or_404(Post, pk=pk)
+    publicacion.delete()
+    messages.success(request, 'La publicación se ha eliminado.')
+    return redirect('gestion_publicaciones')
+
+
 class VistaPerfilUsuario(MixinRequiereAutenticacion, MixinContextoPerfil, TemplateView):
     """Vista privada del perfil del usuario autenticado."""
 
@@ -73,6 +135,11 @@ class VistaPerfilUsuario(MixinRequiereAutenticacion, MixinContextoPerfil, Templa
         """Crea el contexto del perfil personal con amigos y publicaciones."""
         contexto = super().get_context_data(**kwargs)
         contexto.update(self.obtener_contexto_perfil(self.request.user, self.request.user))
+        contexto['purchase_orders'] = (
+            self.request.user.pedidos_tienda
+            .filter(estado__in=('pagado', 'pendiente', 'preparando', 'enviado', 'completado'))
+            .prefetch_related('lineas')
+        )
         return contexto
 
 
